@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -9,6 +9,12 @@
 		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsRoslynComponent>true</IsRoslynComponent>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizationAuthorityAttribute.cs" Link="Attributes\SynchronizationAuthorityAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizationIdAttribute.cs" Link="Attributes\SynchronizationIdAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizedAttribute.cs" Link="Attributes\SynchronizedAttribute.cs" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" PrivateAssets="all" />
 		<PackageReference Update="NETStandard.Library" PrivateAssets="all" />

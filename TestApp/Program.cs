@@ -12,19 +12,34 @@ namespace TestApp
 		}
 	}
 
-	public partial class MySynchronizedObject
+	public partial class MySynchronizedObject:IDisposable
 	{
-		[SynchronizedField]
+		private const string name = "SynchronizedProperty";
+
+		[Synchronized(name)]
 		private String _synchronizedField = String.Empty;
+		private Boolean disposedValue;
+
 		[SynchronizationAuthority]
-		private MySynchronizationAuthority _synchronizationAuthority = new();
+		private MySynchronizationAuthority SynchronizationAuthority { get; } = new();
+
 	}
 
 	public sealed class MySynchronizationAuthority : SynchronizationAuthorityBase
 	{
-		public override void Synchronize<TProperty>(String objectKey, String propertyKey, Action<TProperty> callback)
-		{
-			Console.WriteLine($"Synchronizing:\n\tObject: {objectKey}\n\tProperty: {propertyKey}");
-		}
+		public override void Push<TProperty>(String objectId, String propertyId, TProperty value)
+        {
+            Console.WriteLine($"Pushing:\n\tObject: {objectId}\n\tProperty: {propertyId}\n\t");
+        }
+
+		public override void Subscribe<TProperty>(String objectId, String propertyId, Action<TProperty> callback)
+        {
+            Console.WriteLine($"Subscribing:\n\tObject: {objectId}\n\tProperty: {propertyId}");
+        }
+
+		public override void Unsubscribe(String objectId, String propertyId)
+        {
+            Console.WriteLine($"Unsubscribing:\n\tObject: {objectId}\n\tProperty: {propertyId}");
+        }
 	}
 }

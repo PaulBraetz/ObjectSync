@@ -3,13 +3,13 @@
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class SynchronizedFieldAttribute : Attribute
+	public sealed class SynchronizedAttribute : Attribute
 	{
-		public SynchronizedFieldAttribute() : this(null)
+		public SynchronizedAttribute() : this(null)
 		{
 
 		}
-		public SynchronizedFieldAttribute(String propertyName)
+		public SynchronizedAttribute(String propertyName)
 		{
 			PropertyName = propertyName;
 		}
