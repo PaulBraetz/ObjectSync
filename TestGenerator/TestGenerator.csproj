@@ -11,9 +11,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizationAuthorityAttribute.cs" Link="Attributes\SynchronizationAuthorityAttribute.cs" />
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizationIdAttribute.cs" Link="Attributes\SynchronizationIdAttribute.cs" />
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizedAttribute.cs" Link="Attributes\SynchronizedAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizationAuthorityAttribute.cs" Link="ObjectSync.Attributes\SynchronizationAuthorityAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizationIdAttribute.cs" Link="ObjectSync.Attributes\SynchronizationIdAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
+	  <Compile Include="..\ObjectSync\Attributes\SynchronizedFlagAttribute.cs" Link="ObjectSync.Attributes\SynchronizedFlagAttribute.cs" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" PrivateAssets="all" />
@@ -26,6 +27,10 @@
 
 	<ItemGroup>
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="ObjectSync.Attributes\" />
 	</ItemGroup>
 
 </Project>

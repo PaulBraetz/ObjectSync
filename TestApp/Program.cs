@@ -4,42 +4,57 @@ using System.ComponentModel;
 
 namespace TestApp
 {
-	public partial class Program
+	public class Program:INotifyPropertyChanged, INotifyPropertyChanging
 	{
+		public event PropertyChangingEventHandler? PropertyChanging;
+		public event PropertyChangedEventHandler? PropertyChanged;
+
 		static void Main(string[] args)
 		{
-			Console.WriteLine("Hello, World!");
+			using(var instance = T.MySynchronizedObject.CreateSynchronized())
+			{
+				instance.Synchronized_synchronizedField = "Some Value";
+			}
 		}
 	}
 
-	public partial class MySynchronizedObject:IDisposable
+	internal sealed partial class T
 	{
-		private const string name = "SynchronizedProperty";
+		public partial class MySynchronizedObject : IDisposable
+		{
+			private const string name = "SynchronizedProperty";
 
-		[Synchronized(name)]
-		private String _synchronizedField = String.Empty;
-		private Boolean disposedValue;
+			[Synchronized(name)]
+			private String _synchronizedField = String.Empty;
+			private Boolean disposedValue;
 
-		[SynchronizationAuthority]
-		private MySynchronizationAuthority SynchronizationAuthority { get; } = new();
+			[SynchronizationAuthority]
+			private MySynchronizationAuthority SynchronizationAuthority { get; } = new();
 
+			public static MySynchronizedObject CreateSynchronized()
+			{
+				var instance = new MySynchronizedObject();
+				instance.Synchronize();
+				return instance;
+			}
+		}
 	}
 
 	public sealed class MySynchronizationAuthority : SynchronizationAuthorityBase
 	{
-		public override void Push<TProperty>(String objectId, String propertyId, TProperty value)
+		public override void Push<TProperty>(String objectId, String propertyName, TProperty value)
         {
-            Console.WriteLine($"Pushing:\n\tObject: {objectId}\n\tProperty: {propertyId}\n\t");
+            Console.WriteLine($"Pushing:\n\tObject: {objectId}\n\tProperty: {propertyName}\n\t");
         }
 
-		public override void Subscribe<TProperty>(String objectId, String propertyId, Action<TProperty> callback)
+		public override void Subscribe<TProperty>(String objectId, String propertyName, Action<TProperty> callback)
         {
-            Console.WriteLine($"Subscribing:\n\tObject: {objectId}\n\tProperty: {propertyId}");
+            Console.WriteLine($"Subscribing:\n\tObject: {objectId}\n\tProperty: {propertyName}");
         }
 
-		public override void Unsubscribe(String objectId, String propertyId)
+		public override void Unsubscribe(String objectId, String propertyName)
         {
-            Console.WriteLine($"Unsubscribing:\n\tObject: {objectId}\n\tProperty: {propertyId}");
+            Console.WriteLine($"Unsubscribing:\n\tObject: {objectId}\n\tProperty: {propertyName}");
         }
 	}
 }
