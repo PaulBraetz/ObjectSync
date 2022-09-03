@@ -6,8 +6,6 @@ namespace TestApp
 {
 	public partial class Person
 	{
-		public const String NameName = "Name";
-
 		public Person(String name, Byte age) : this(Guid.NewGuid())
 		{
 			GetSynchronizationState().Synchronize();
@@ -22,10 +20,10 @@ namespace TestApp
 			GetSynchronizationState().Synchronize();
 		}
 
-		[Synchronized("Name")]
+		[Synchronized]
 		private String? _name;
 
-		[Synchronized("Age")]
+		[Synchronized]
 		private Byte _age;
 
 		public Guid Id { get; }

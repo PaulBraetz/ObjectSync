@@ -380,17 +380,23 @@ Set{propertyName}(value);
 				{
 					propertyName = constantValue.ConstantValue?.ToString();
 				}
-				else
-				{
-					throw new Exception($"Unable to generate property name for {GetFieldName(field)}.");
-				}
 			}
 
 			if (String.IsNullOrEmpty(propertyName))
 			{
-				var fieldName = Regex.Replace(GetFieldName(field), @"^_*", String.Empty);
+				var fieldName = GetFieldName(field);
 
-				propertyName = String.Concat(SYNCHRONIZED_PROPERTY_PREFIX, Char.ToUpperInvariant(fieldName[0]),fieldName.Substring(1, fieldName.Length-1));
+				if (fieldName[0] == '_' || fieldName[0] == Char.ToLowerInvariant(fieldName[0]))
+				{
+					var sanitizedFieldName = Regex.Replace(fieldName, @"^_*", String.Empty);
+					propertyName = String.Concat(Char.ToUpperInvariant(sanitizedFieldName[0]), sanitizedFieldName.Substring(1, sanitizedFieldName.Length - 1));
+
+				}
+				else
+				{
+					propertyName = String.Concat(SYNCHRONIZED_PROPERTY_PREFIX, Char.ToUpperInvariant(fieldName[0]), fieldName.Substring(1, fieldName.Length - 1));
+				}
+
 			}
 
 			return propertyName;
