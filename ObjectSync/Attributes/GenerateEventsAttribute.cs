@@ -5,7 +5,7 @@ using System.Text;
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class EventIntegrationAttribute : Attribute
+	public sealed class GenerateEventsAttribute : Attribute
 	{
 	}
 }

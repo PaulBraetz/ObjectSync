@@ -8,33 +8,24 @@ namespace TestApp
 	{
 		public Person()
 		{
-			Synchronize();
+			GetSynchronizationState().Synchronize();
+			Name = "Mike";
+			Age = 5;
 		}
 		public Person(String synchronizationId)
 		{
 			SynchronizationId = synchronizationId;
-			Synchronize();
+			GetSynchronizationState().Synchronize();
 		}
 
 		[Synchronized("Name")]
-		[EventIntegration]
-		private String _name = String.Empty;
+		private String _name;
+
+		[Synchronized("Age")]
+		private Byte _age;
 
 		[SynchronizationAuthority]
-		private ISynchronizationAuthority SynchronizationAuthority { get; } = new StaticSynchronizationAuthority();
-
-		public event EventHandler<PropertyChangedEventArgs>? PropertyChanged;
-
-		partial void OnPropertyChanged(PropertyChangedEventArgs args)
-		{
-			PropertyChanged?.Invoke(this, args);
-		}
-
-		public event EventHandler<PropertyChangingEventArgs>? PropertyChanging;
-		partial void OnPropertyChanging(PropertyChangingEventArgs args)
-		{
-			PropertyChanging?.Invoke(this, args);
-		}
+		private ISynchronizationAuthority _authority { get; } = new StaticSynchronizationAuthority();
 
 		public Person Clone()
 		{
@@ -43,7 +34,7 @@ namespace TestApp
 
 		public override String ToString()
 		{
-			return Name;
+			return $"Name: {_name}, Age: {_age}";
 		}
 	}
 }

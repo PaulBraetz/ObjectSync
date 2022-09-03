@@ -9,16 +9,16 @@ namespace TestApp
 			var person1 = new Person();
 			var person2 = person1.Clone();
 			var person3 = person2.Clone();
-			var person4 = person3.Clone();
-			var person5 = person1.Clone();
+
+			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3 }));
 
 			person3.Name = "Jacob";
 
-			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3, person4, person5 }));
+			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3 }));
 
-			person1.Name = "Han";
+			person1.Age = 44;
 
-			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3, person4, person5 }));
+			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3 }));
 		}
 	}
 }

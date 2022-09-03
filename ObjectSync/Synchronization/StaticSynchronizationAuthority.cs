@@ -25,7 +25,14 @@ namespace ObjectSync.Synchronization
 
 			public TProperty GetValue<TProperty>()
 			{
-				return (TProperty)_value;
+				try
+				{
+					return (TProperty)_value;
+				}
+				catch
+				{
+					return default;
+				}
 			}
 			public async Task SetValue(String instanceId, Object value)
 			{
@@ -75,7 +82,7 @@ namespace ObjectSync.Synchronization
 			return context;
 		}
 
-		public override async void Push<TProperty>(String synchronizationId, String propertyName, String instanceId, TProperty value)
+		public override void Push<TProperty>(String synchronizationId, String propertyName, String instanceId, TProperty value)
 		{
 			var context = GetContext(synchronizationId, propertyName);
 			var awaiter = context.SetValue(instanceId, value).GetAwaiter();

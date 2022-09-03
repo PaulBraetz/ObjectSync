@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace TestGenerator
 {
@@ -14,21 +15,19 @@ namespace TestGenerator
 		private static Namespace AttributesNamespace = Namespace.Create<ObjectSync.Attributes.SynchronizedAttribute>();
 
 		private static TypeIdentifierName SynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedAttribute>();
-		private static TypeIdentifierName SynchronizedFlagAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedFlagAttribute>();
 		private static TypeIdentifierName SynchronizationIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationIdAttribute>();
 		private static TypeIdentifierName SynchronizationInstanceIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationInstanceIdAttribute>();
 		private static TypeIdentifierName SynchronizationAuthorityAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationAuthorityAttribute>();
-		private static TypeIdentifierName EventIntegrationAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.EventIntegrationAttribute>();
+		private static TypeIdentifierName GenerateEventsAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.GenerateEventsAttribute>();
 
 		private static TypeIdentifier SynchronizedAttributeIdentifier = TypeIdentifier.Create(SynchronizedAttributeName, AttributesNamespace);
-		private static TypeIdentifier SynchronizedFlagAttributeIdentifier = TypeIdentifier.Create(SynchronizedFlagAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizationIdAttributeIdentifier = TypeIdentifier.Create(SynchronizationIdAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizationInstanceIdAttributeIdentifier = TypeIdentifier.Create(SynchronizationInstanceIdAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizationAuthorityAttributeIdentifier = TypeIdentifier.Create(SynchronizationAuthorityAttributeName, AttributesNamespace);
-		private static TypeIdentifier EventIntegrationAttributeIdentifier = TypeIdentifier.Create(EventIntegrationAttributeName, AttributesNamespace);
+		private static TypeIdentifier GenerateEventsAttributeIdentifier = TypeIdentifier.Create(GenerateEventsAttributeName, AttributesNamespace);
 
-		private const String SYNCHRONIZATION_FLAG_FALLBACK_NAME = "IsSynchronized";
-		private const String SYNCHRONIZATION_ID_FALLBACK_NAME = "SynchronizationId";
+		private const String SYNCHRONIZATION_STATE_NAME = "SynchronizationState";
+		private const String SYNCHRONIZATION_ID_NAME = "SynchronizationId";
 		private const String SYNCHRONIZED_PROPERTY_PREFIX = "Synchronized";
 		private const String SYNCHRONIZATION_INSTANCE_ID_FALLBACK_NAME = "InstanceId";
 		private const String FORMAT_ITEM = "{" + nameof(FORMAT_ITEM) + "}";
@@ -89,19 +88,15 @@ An error occured while generating this source file for {GetName(typeDeclaration)
 
 			var propertyDeclarations = GetGeneratedPropertyDeclarations(typeDeclaration);
 			var eventMethods = GetEventMethodDeclarations(typeDeclaration);
-			var flagDeclaration = GetFlagPropertyDeclaration(typeDeclaration);
 			var synchronizationIdDeclaration = GetSynchronizationIdPropertyDeclaration(typeDeclaration);
 			var instanceIdDeclaration = GetInstanceIdPropertyDeclaration(typeDeclaration);
-			var synchronizeMethod = GetSynchronizeMethod(typeDeclaration);
-			var desynchronizMethod = GetDesynchronizeMethod(typeDeclaration);
+			var synchronizationStateDeclaration = GetSynchronizationStateDeclaration(typeDeclaration);
 
 			var bodyParts = propertyDeclarations
 				.Append(eventMethods)
-				.Append(flagDeclaration)
 				.Append(synchronizationIdDeclaration)
 				.Append(instanceIdDeclaration)
-				.Append(synchronizeMethod)
-				.Append(desynchronizMethod)
+				.Append(synchronizationStateDeclaration)
 				.Where(s => !String.IsNullOrWhiteSpace(s));
 
 			var body = String.Join("\n\n", bodyParts);
@@ -111,10 +106,43 @@ An error occured while generating this source file for {GetName(typeDeclaration)
 			return declaration;
 		}
 
+		private String GetSynchronizationStateDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var name = GetName(typeDeclaration);
+			var synchronizeMethod = GetSynchronizeMethod(typeDeclaration);
+			var desynchronizMethod = GetDesynchronizeMethod(typeDeclaration);
+
+			var declaration =
+$@"private sealed class SynchronizationState
+{{
+public SynchronizationState({name} instance)
+{{
+_instance = instance;
+}}
+
+public Boolean IsSynchronized {{get; private set;}}
+
+private readonly {name} _instance; 
+private readonly System.Threading.SemaphoreSlim _gate = new System.Threading.SemaphoreSlim(1, 1);
+
+{synchronizeMethod}
+{desynchronizMethod}
+}}
+
+private SynchronizationState __synchronizationState;
+private SynchronizationState GetSynchronizationState()
+{{
+return __synchronizationState ??= new SynchronizationState(this);
+}}";
+
+			return declaration;
+
+		}
+
 		private String GetEventMethodDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var methods = _analyzer.GetFieldDeclarations(typeDeclaration)
-				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, EventIntegrationAttributeIdentifier)) ?
+				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, GenerateEventsAttributeIdentifier)) ?
 @"partial void OnPropertyChanging(System.ComponentModel.PropertyChangingEventArgs args);
 
 private void OnPropertyChanging(System.String propertyName)
@@ -135,15 +163,25 @@ String.Empty;
 
 		private String GetDesynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
+			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var unsubscriptions = String.Join("\n", GetUnsubscriptionExpressions(typeDeclaration));
-			var flagName = GetFlagPropertyName(typeDeclaration);
 
 			var declaration =
-$@"private void Desynchronize()
+$@"public void Desynchronize()
+{{
+_gate.Wait();
+try
+{{
+var authority = _instance.{authority};
+if(authority != null)
 {{
 {unsubscriptions}
 
-{flagName} = false;
+IsSynchronized = false;
+}}
+}}finally{{
+_gate.Release();
+}}
 }}";
 
 			return declaration;
@@ -157,30 +195,39 @@ $@"private void Desynchronize()
 		}
 		private String GetUnsubscriptionExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var propertyName = GetGeneratedPropertyName(field);
 			var idName = GetSynchronizationIdPropertyName(typeDeclaration);
 			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
 			var expression =
-$"{authority}?.Unsubscribe({idName}, \"{propertyName}\", {instanceIdName});";
+$"authority.Unsubscribe(_instance.{idName}, \"{propertyName}\", _instance.{instanceIdName});";
 
 			return expression;
 		}
 
 		private String GetSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
+			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var subscriptions = String.Join("\n", GetSubscriptionExpressions(typeDeclaration));
 			var pulls = String.Join("\n", GetPullExpressions(typeDeclaration));
-			var flagName = GetFlagPropertyName(typeDeclaration);
 
 			var initializer =
-$@"private void Synchronize()
+$@"public void Synchronize()
+{{
+_gate.Wait();
+try
+{{
+var authority = _instance.{authority};
+if(authority != null)
 {{
 {pulls}
 
 {subscriptions}
 
-{flagName} = true;
+IsSynchronized = true;
+}}
+}}finally{{
+_gate.Release();
+}}
 }}";
 
 			return initializer;
@@ -195,7 +242,6 @@ $@"private void Synchronize()
 		}
 		private String GetPullExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var fieldType = GetFieldType(field);
 			var fieldName = GetFieldName(field);
 			var idPropertyName = GetSynchronizationIdPropertyName(typeDeclaration);
@@ -203,7 +249,7 @@ $@"private void Synchronize()
 			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
 
 			var subscription =
-$"{fieldName} = {authority}.Pull<{fieldType}>({idPropertyName}, \"{propertyName}\", {instanceIdName});";
+$"_instance.{fieldName} = authority.Pull<{fieldType}>(_instance.{idPropertyName}, \"{propertyName}\", _instance.{instanceIdName});";
 
 			return subscription;
 		}
@@ -217,14 +263,13 @@ $"{fieldName} = {authority}.Pull<{fieldType}>({idPropertyName}, \"{propertyName}
 		}
 		private String GetSubscriptionExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var fieldType = GetFieldType(field);
 			var idPropertyName = GetSynchronizationIdPropertyName(typeDeclaration);
 			var propertyName = GetGeneratedPropertyName(field);
 			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
 
 			var subscription =
-$"{authority}.Subscribe<{fieldType}>({idPropertyName}, \"{propertyName}\", {instanceIdName}, UnsynchronizedSet{propertyName});";
+$"authority.Subscribe<{fieldType}>(_instance.{idPropertyName}, \"{propertyName}\", _instance.{instanceIdName}, _instance.Set{propertyName});";
 
 			return subscription;
 		}
@@ -269,18 +314,18 @@ return {fieldName};
 }}
 set
 {{
-SynchronizedSet{propertyName}(value);
+SetAndPush{propertyName}(value);
 }}
 }}
 
-private void UnsynchronizedSet{propertyName}({fieldType} value)
+private void Set{propertyName}({fieldType} value)
 {{{propertyChangingCall}
 {fieldName} = value;{propertyChangedCall}
 }}
 
-private void SynchronizedSet{propertyName}({fieldType} value)
+private void SetAndPush{propertyName}({fieldType} value)
 {{
-UnsynchronizedSet{propertyName}(value);
+Set{propertyName}(value);
 {authorityName}.Push<{fieldType}>({idPropertyName}, ""{propertyName}"", {instanceIdName}, value);
 }}";
 
@@ -289,7 +334,7 @@ UnsynchronizedSet{propertyName}(value);
 
 		private String GetPropertyChangingCall(FieldDeclarationSyntax field)
 		{
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, EventIntegrationAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, GenerateEventsAttributeIdentifier) ?
 				$"\nOnPropertyChanging(\"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -297,7 +342,7 @@ UnsynchronizedSet{propertyName}(value);
 		}
 		private String GetPropertyChangedCall(FieldDeclarationSyntax field)
 		{
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, EventIntegrationAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, GenerateEventsAttributeIdentifier) ?
 				$"\nOnPropertyChanged(\"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -337,41 +382,12 @@ UnsynchronizedSet{propertyName}(value);
 
 			if (String.IsNullOrEmpty(propertyName))
 			{
-				var fieldName = field.Declaration.Variables.Single().Identifier.Text;
-				propertyName = fieldName.StartsWith("_") ?
-					$"{SYNCHRONIZED_PROPERTY_PREFIX}{fieldName}" :
-					$"{SYNCHRONIZED_PROPERTY_PREFIX}_{fieldName}";
+				var fieldName = Regex.Replace(GetFieldName(field), @"^_*", String.Empty);
+
+				propertyName = String.Concat(SYNCHRONIZED_PROPERTY_PREFIX, Char.ToUpperInvariant(fieldName[0]),fieldName.Substring(1, fieldName.Length-1));
 			}
 
 			return propertyName;
-		}
-
-		private Boolean TryGetFlagProperty(BaseTypeDeclarationSyntax typeDeclaration, out PropertyDeclarationSyntax flagProperty)
-		{
-			var properties = _analyzer.GetPropertyDeclarations(typeDeclaration, new[] { SynchronizedFlagAttributeIdentifier });
-			if (properties.Count() > 1)
-			{
-				throw new Exception($"Multiple properties annotated with {SynchronizedFlagAttributeIdentifier} have been declared in {typeDeclaration.Identifier.Text}.");
-			}
-			flagProperty = properties.SingleOrDefault();
-
-			return flagProperty != null;
-		}
-		private String GetFlagPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			var name = TryGetFlagProperty(typeDeclaration, out var flagProperty) ?
-				flagProperty.Identifier.Text :
-				SYNCHRONIZATION_FLAG_FALLBACK_NAME;
-
-			return name;
-		}
-		private String GetFlagPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			var declaration = TryGetFlagProperty(typeDeclaration, out var flagProperty) ?
-				String.Empty :
-				$"\nprivate System.Boolean {SYNCHRONIZATION_FLAG_FALLBACK_NAME} {{get; set;}}";
-
-			return declaration;
 		}
 
 		private Boolean TryGetSynchronizationIdProperty(BaseTypeDeclarationSyntax typeDeclaration, out PropertyDeclarationSyntax idProperty)
@@ -385,7 +401,7 @@ UnsynchronizedSet{propertyName}(value);
 		}
 		private String GetSynchronizationIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var name = TryGetSynchronizationIdProperty(typeDeclaration, out var property) ? property.Identifier.Text : SYNCHRONIZATION_ID_FALLBACK_NAME;
+			var name = TryGetSynchronizationIdProperty(typeDeclaration, out var property) ? property.Identifier.Text : SYNCHRONIZATION_ID_NAME;
 
 			return name;
 		}
@@ -393,7 +409,7 @@ UnsynchronizedSet{propertyName}(value);
 		{
 			var declaration = TryGetSynchronizationIdProperty(typeDeclaration, out var property) ?
 				String.Empty :
-				$"private System.String {SYNCHRONIZATION_ID_FALLBACK_NAME} {{get; set;}} = System.Guid.NewGuid().ToString();";
+				$"private System.String {SYNCHRONIZATION_ID_NAME} {{get; set;}} = System.Guid.NewGuid().ToString();";
 
 			return declaration;
 		}
