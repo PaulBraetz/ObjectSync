@@ -11,10 +11,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizationAuthorityAttribute.cs" Link="ObjectSync.Attributes\SynchronizationAuthorityAttribute.cs" />
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizationIdAttribute.cs" Link="ObjectSync.Attributes\SynchronizationIdAttribute.cs" />
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
-	  <Compile Include="..\ObjectSync\Attributes\SynchronizedFlagAttribute.cs" Link="ObjectSync.Attributes\SynchronizedFlagAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\SynchronizationAuthorityAttribute.cs" Link="ObjectSync.Attributes\SynchronizationAuthorityAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\SynchronizationIdAttribute.cs" Link="ObjectSync.Attributes\SynchronizationIdAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\SynchronizationInstanceIdAttribute.cs" Link="ObjectSync.Attributes\SynchronizationInstanceIdAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\SynchronizedFlagAttribute.cs" Link="ObjectSync.Attributes\SynchronizedFlagAttribute.cs" />
+		<Compile Include="..\ObjectSync\Attributes\EventIntegrationAttribute.cs" Link="ObjectSync.Attributes\EventIntegrationAttribute.cs" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" PrivateAssets="all" />
@@ -30,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="ObjectSync.Attributes\" />
+		<Folder Include="ObjectSync.Attributes\" />
 	</ItemGroup>
 
 </Project>

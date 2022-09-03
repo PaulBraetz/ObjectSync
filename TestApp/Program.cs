@@ -1,60 +1,24 @@
-﻿using ObjectSync.Attributes;
-using ObjectSync.Synchronization;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace TestApp
 {
-	public class Program:INotifyPropertyChanged, INotifyPropertyChanging
+	public class Program
 	{
-		public event PropertyChangingEventHandler? PropertyChanging;
-		public event PropertyChangedEventHandler? PropertyChanged;
-
 		static void Main(string[] args)
 		{
-			using(var instance = T.MySynchronizedObject.CreateSynchronized())
-			{
-				instance.Synchronized_synchronizedField = "Some Value";
-			}
+			var person1 = new Person();
+			var person2 = person1.Clone();
+			var person3 = person2.Clone();
+			var person4 = person3.Clone();
+			var person5 = person1.Clone();
+
+			person3.Name = "Jacob";
+
+			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3, person4, person5 }));
+
+			person1.Name = "Han";
+
+			Console.WriteLine(String.Join("\n", new Object[] { person1, person2, person3, person4, person5 }));
 		}
-	}
-
-	internal sealed partial class T
-	{
-		public partial class MySynchronizedObject : IDisposable
-		{
-			private const string name = "SynchronizedProperty";
-
-			[Synchronized(name)]
-			private String _synchronizedField = String.Empty;
-			private Boolean disposedValue;
-
-			[SynchronizationAuthority]
-			private MySynchronizationAuthority SynchronizationAuthority { get; } = new();
-
-			public static MySynchronizedObject CreateSynchronized()
-			{
-				var instance = new MySynchronizedObject();
-				instance.Synchronize();
-				return instance;
-			}
-		}
-	}
-
-	public sealed class MySynchronizationAuthority : SynchronizationAuthorityBase
-	{
-		public override void Push<TProperty>(String objectId, String propertyName, TProperty value)
-        {
-            Console.WriteLine($"Pushing:\n\tObject: {objectId}\n\tProperty: {propertyName}\n\t");
-        }
-
-		public override void Subscribe<TProperty>(String objectId, String propertyName, Action<TProperty> callback)
-        {
-            Console.WriteLine($"Subscribing:\n\tObject: {objectId}\n\tProperty: {propertyName}");
-        }
-
-		public override void Unsubscribe(String objectId, String propertyName)
-        {
-            Console.WriteLine($"Unsubscribing:\n\tObject: {objectId}\n\tProperty: {propertyName}");
-        }
 	}
 }

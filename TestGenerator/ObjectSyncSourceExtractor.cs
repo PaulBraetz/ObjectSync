@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RhoMicro.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace TestGenerator
@@ -15,16 +16,21 @@ namespace TestGenerator
 		private static TypeIdentifierName SynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedAttribute>();
 		private static TypeIdentifierName SynchronizedFlagAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedFlagAttribute>();
 		private static TypeIdentifierName SynchronizationIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationIdAttribute>();
+		private static TypeIdentifierName SynchronizationInstanceIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationInstanceIdAttribute>();
 		private static TypeIdentifierName SynchronizationAuthorityAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationAuthorityAttribute>();
+		private static TypeIdentifierName EventIntegrationAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.EventIntegrationAttribute>();
 
 		private static TypeIdentifier SynchronizedAttributeIdentifier = TypeIdentifier.Create(SynchronizedAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizedFlagAttributeIdentifier = TypeIdentifier.Create(SynchronizedFlagAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizationIdAttributeIdentifier = TypeIdentifier.Create(SynchronizationIdAttributeName, AttributesNamespace);
+		private static TypeIdentifier SynchronizationInstanceIdAttributeIdentifier = TypeIdentifier.Create(SynchronizationInstanceIdAttributeName, AttributesNamespace);
 		private static TypeIdentifier SynchronizationAuthorityAttributeIdentifier = TypeIdentifier.Create(SynchronizationAuthorityAttributeName, AttributesNamespace);
+		private static TypeIdentifier EventIntegrationAttributeIdentifier = TypeIdentifier.Create(EventIntegrationAttributeName, AttributesNamespace);
 
 		private const String SYNCHRONIZATION_FLAG_FALLBACK_NAME = "IsSynchronized";
 		private const String SYNCHRONIZATION_ID_FALLBACK_NAME = "SynchronizationId";
 		private const String SYNCHRONIZED_PROPERTY_PREFIX = "Synchronized";
+		private const String SYNCHRONIZATION_INSTANCE_ID_FALLBACK_NAME = "InstanceId";
 		private const String FORMAT_ITEM = "{" + nameof(FORMAT_ITEM) + "}";
 
 		private readonly CompilationAnalyzer _analyzer;
@@ -37,7 +43,7 @@ namespace TestGenerator
 		public IEnumerable<GeneratedSource> GetSources()
 		{
 			var syncDeclarations = GetSyncDeclarations();
-			var sources = syncDeclarations.Select(GetGeneratedSource);
+			var sources = syncDeclarations.Select(GetGeneratedSource).ToArray();
 
 			return sources;
 		}
@@ -53,69 +59,91 @@ namespace TestGenerator
 		private GeneratedSource GetGeneratedSource(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var className = GetName(typeDeclaration);
-			var source = GetGeneratedTypeDeclaration(typeDeclaration);
+			String source = null;
+			try
+			{
+				source = GetGeneratedTypeDeclaration(typeDeclaration);
+			}
+			catch (Exception ex)
+			{
+				source = GetError(typeDeclaration, ex);
+			}
 			var objectSyncSource = new GeneratedSource(source, className);
-
 			return objectSyncSource;
+		}
+
+		private String GetError(BaseTypeDeclarationSyntax typeDeclaration, Exception ex)
+		{
+			var error =
+$@"/*
+An error occured while generating this source file for {GetName(typeDeclaration)}:
+{ex}
+*/";
+
+			return error;
 		}
 
 		private String GetGeneratedTypeDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			String template = GetClassTemplate(typeDeclaration);
 
-			var propertyDeclarations = String.Join("\n\n", GetGeneratedPropertyDeclarations(typeDeclaration));
-			var methodDeclarations = String.Join("\n\n", GetPartialMethodDeclarations());
+			var propertyDeclarations = GetGeneratedPropertyDeclarations(typeDeclaration);
+			var eventMethods = GetEventMethodDeclarations(typeDeclaration);
 			var flagDeclaration = GetFlagPropertyDeclaration(typeDeclaration);
-			var idDeclaration = GetIdPropertyDeclaration(typeDeclaration);
-			var initializerDeclaration = GetInitializerDeclaration(typeDeclaration);
-			var disposeDeclaration = GetDisposeDeclaration(typeDeclaration);
+			var synchronizationIdDeclaration = GetSynchronizationIdPropertyDeclaration(typeDeclaration);
+			var instanceIdDeclaration = GetInstanceIdPropertyDeclaration(typeDeclaration);
+			var synchronizeMethod = GetSynchronizeMethod(typeDeclaration);
+			var desynchronizMethod = GetDesynchronizeMethod(typeDeclaration);
 
-			var body =
-$@"{propertyDeclarations}
-{methodDeclarations}{flagDeclaration}{idDeclaration}
-{initializerDeclaration}
-{disposeDeclaration}";
+			var bodyParts = propertyDeclarations
+				.Append(eventMethods)
+				.Append(flagDeclaration)
+				.Append(synchronizationIdDeclaration)
+				.Append(instanceIdDeclaration)
+				.Append(synchronizeMethod)
+				.Append(desynchronizMethod)
+				.Where(s => !String.IsNullOrWhiteSpace(s));
+
+			var body = String.Join("\n\n", bodyParts);
 
 			var declaration = template.Replace(FORMAT_ITEM, body);
 
 			return declaration;
 		}
 
-		private String GetDisposeDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetEventMethodDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var methods = _analyzer.GetFieldDeclarations(typeDeclaration)
+				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, EventIntegrationAttributeIdentifier)) ?
+@"partial void OnPropertyChanging(System.ComponentModel.PropertyChangingEventArgs args);
+
+private void OnPropertyChanging(System.String propertyName)
+{
+OnPropertyChanging(new System.ComponentModel.PropertyChangingEventArgs(propertyName));
+}
+
+partial void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs args);
+
+private void OnPropertyChanged(System.String propertyName)
+{
+OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+}" :
+String.Empty;
+
+			return methods;
+		}
+
+		private String GetDesynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var unsubscriptions = String.Join("\n", GetUnsubscriptionExpressions(typeDeclaration));
 			var flagName = GetFlagPropertyName(typeDeclaration);
 
 			var declaration =
-$@"private System.Boolean disposedValue = false;
-
-private void Dispose(Boolean disposing)
+$@"private void Desynchronize()
 {{
-	if (!disposedValue)
-	{{
-		if (disposing)
-		{{
-			DisposeManagedResources();
-		}}
-		
-		{unsubscriptions}
+{unsubscriptions}
 
-		{flagName} = false;
-
-		DisposeUnmanagedResources();
-		disposedValue = true;
-	}}
-}}
-
-~MySynchronizedObject()
-{{
-	Dispose(disposing: false);
-}}
-
-public void Dispose()
-{{
-	Dispose(disposing: true);
-	GC.SuppressFinalize(this);
+{flagName} = false;
 }}";
 
 			return declaration;
@@ -131,27 +159,55 @@ public void Dispose()
 		{
 			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var propertyName = GetGeneratedPropertyName(field);
-			var idName = GetIdPropertyName(typeDeclaration);
+			var idName = GetSynchronizationIdPropertyName(typeDeclaration);
+			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
 			var expression =
-$"{authority}.Unsubscribe({idName}, nameof{propertyName}))";
+$"{authority}?.Unsubscribe({idName}, \"{propertyName}\", {instanceIdName});";
 
 			return expression;
 		}
 
-		private String GetInitializerDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var subscriptions = String.Join("\n", GetSubscriptionExpressions(typeDeclaration));
+			var pulls = String.Join("\n", GetPullExpressions(typeDeclaration));
 			var flagName = GetFlagPropertyName(typeDeclaration);
 
 			var initializer =
 $@"private void Synchronize()
 {{
+{pulls}
+
 {subscriptions}
+
 {flagName} = true;
 }}";
 
 			return initializer;
 		}
+
+		private IEnumerable<String> GetPullExpressions(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var fields = GetFields(typeDeclaration);
+			var pulls = fields.Select(f => GetPullExpression(f, typeDeclaration));
+
+			return pulls;
+		}
+		private String GetPullExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var authority = GetAuthorityPropertyName(typeDeclaration);
+			var fieldType = GetFieldType(field);
+			var fieldName = GetFieldName(field);
+			var idPropertyName = GetSynchronizationIdPropertyName(typeDeclaration);
+			var propertyName = GetGeneratedPropertyName(field);
+			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
+
+			var subscription =
+$"{fieldName} = {authority}.Pull<{fieldType}>({idPropertyName}, \"{propertyName}\", {instanceIdName});";
+
+			return subscription;
+		}
+
 		private IEnumerable<String> GetSubscriptionExpressions(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var fields = GetFields(typeDeclaration);
@@ -163,26 +219,14 @@ $@"private void Synchronize()
 		{
 			var authority = GetAuthorityPropertyName(typeDeclaration);
 			var fieldType = GetFieldType(field);
-			var fieldName = GetFieldName(field);
-			var idPropertyName = GetIdPropertyName(typeDeclaration);
+			var idPropertyName = GetSynchronizationIdPropertyName(typeDeclaration);
 			var propertyName = GetGeneratedPropertyName(field);
+			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
+
 			var subscription =
-$@"{authority}.Subscribe<{fieldType}>({idPropertyName}, nameof({propertyName}), (value) => {fieldName} = value);";
+$"{authority}.Subscribe<{fieldType}>({idPropertyName}, \"{propertyName}\", {instanceIdName}, UnsynchronizedSet{propertyName});";
 
-			moreturn subscription;
-		}
-
-		private IEnumerable<String> GetPartialMethodDeclarations()
-		{
-			var methods = new[]
-			{
-				"partial void OnPropertyChanging(System.ComponentModel.PropertyChangingEventArgs args);",
-				"partial void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs args);" ,
-				"partial void DisposeManagedResources();",
-				"partial void DisposeUnmanagedResources();"
-			};
-
-			return methods;
+			return subscription;
 		}
 
 		private IEnumerable<FieldDeclarationSyntax> GetFields(BaseTypeDeclarationSyntax typeDeclaration)
@@ -210,25 +254,56 @@ $@"{authority}.Subscribe<{fieldType}>({idPropertyName}, nameof({propertyName}), 
 			var fieldType = GetFieldType(field);
 			var propertyName = GetGeneratedPropertyName(field);
 			var fieldName = GetFieldName(field);
+			var propertyChangingCall = GetPropertyChangingCall(field);
+			var propertyChangedCall = GetPropertyChangedCall(field);
 			var authorityName = GetAuthorityPropertyName(typeDeclaration);
-			var idPropertyName = GetIdPropertyName(typeDeclaration);
+			var idPropertyName = GetSynchronizationIdPropertyName(typeDeclaration);
+			var instanceIdName = GetInstanceIdPropertyName(typeDeclaration);
 
 			var property =
 $@"public {fieldType} {propertyName} 
-		        {{
-		            get
-		            {{
-		                return {fieldName};
-		            }}
-		            set
-		            {{
-		                {fieldName} = value;
-		                {authorityName}.Push<{fieldType}>({idPropertyName}, nameof({propertyName}), value);
-		            }}
-		        }}";
+{{
+get
+{{
+return {fieldName};
+}}
+set
+{{
+SynchronizedSet{propertyName}(value);
+}}
+}}
+
+private void UnsynchronizedSet{propertyName}({fieldType} value)
+{{{propertyChangingCall}
+{fieldName} = value;{propertyChangedCall}
+}}
+
+private void SynchronizedSet{propertyName}({fieldType} value)
+{{
+UnsynchronizedSet{propertyName}(value);
+{authorityName}.Push<{fieldType}>({idPropertyName}, ""{propertyName}"", {instanceIdName}, value);
+}}";
 
 			return property;
 		}
+
+		private String GetPropertyChangingCall(FieldDeclarationSyntax field)
+		{
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, EventIntegrationAttributeIdentifier) ?
+				$"\nOnPropertyChanging(\"{GetGeneratedPropertyName(field)}\");" :
+				String.Empty;
+
+			return call;
+		}
+		private String GetPropertyChangedCall(FieldDeclarationSyntax field)
+		{
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, EventIntegrationAttributeIdentifier) ?
+				$"\nOnPropertyChanged(\"{GetGeneratedPropertyName(field)}\");" :
+				String.Empty;
+
+			return call;
+		}
+
 		private String GetGeneratedPropertyName(FieldDeclarationSyntax field)
 		{
 			_analyzer.TryGetAttributes(field.AttributeLists, field, SynchronizedAttributeIdentifier, out var attributes);
@@ -238,9 +313,26 @@ $@"public {fieldType} {propertyName}
 				.Arguments
 				.Single();
 
-			if (propertyNameArgument != null && !propertyNameArgument.IsKind(SyntaxKind.StringLiteralExpression))
+			String propertyName = String.Empty;
+
+			if (propertyNameArgument != null)
 			{
-				//
+				var children = propertyNameArgument.ChildNodes().ToArray();
+				if (children.First() is LiteralExpressionSyntax literalExpression &&
+					literalExpression.IsKind(SyntaxKind.StringLiteralExpression))
+				{
+					propertyName = literalExpression.Token.ValueText;
+				}
+				else if (children.First() is InvocationExpressionSyntax invocation &&
+					invocation.Expression is IdentifierNameSyntax identifierName &&
+					identifierName.Identifier.ValueText == "nameof")
+				{
+					propertyName = invocation.ArgumentList.Arguments.SingleOrDefault()?.GetText().ToString();
+				}
+				else
+				{
+					throw new Exception($"Unable to generate property name for {GetFieldName(field)}.");
+				}
 			}
 
 			if (String.IsNullOrEmpty(propertyName))
@@ -275,12 +367,14 @@ $@"public {fieldType} {propertyName}
 		}
 		private String GetFlagPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var declaration = TryGetFlagProperty(typeDeclaration, out var flagProperty) ? String.Empty : $"\n\npublic System.Boolean {SYNCHRONIZATION_FLAG_FALLBACK_NAME} {{get; private set;}}";
+			var declaration = TryGetFlagProperty(typeDeclaration, out var flagProperty) ?
+				String.Empty :
+				$"\nprivate System.Boolean {SYNCHRONIZATION_FLAG_FALLBACK_NAME} {{get; set;}}";
 
 			return declaration;
 		}
 
-		private Boolean TryGetIdProperty(BaseTypeDeclarationSyntax typeDeclaration, out PropertyDeclarationSyntax idProperty)
+		private Boolean TryGetSynchronizationIdProperty(BaseTypeDeclarationSyntax typeDeclaration, out PropertyDeclarationSyntax idProperty)
 		{
 			var properties = _analyzer.GetPropertyDeclarations(typeDeclaration, new[] { SynchronizationIdAttributeIdentifier });
 			ThrowIfMultiple(properties, "properties", SynchronizationIdAttributeIdentifier, typeDeclaration);
@@ -289,15 +383,41 @@ $@"public {fieldType} {propertyName}
 
 			return idProperty != null;
 		}
-		private String GetIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetSynchronizationIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var name = TryGetIdProperty(typeDeclaration, out var property) ? property.Identifier.Text : SYNCHRONIZATION_ID_FALLBACK_NAME;
+			var name = TryGetSynchronizationIdProperty(typeDeclaration, out var property) ? property.Identifier.Text : SYNCHRONIZATION_ID_FALLBACK_NAME;
 
 			return name;
 		}
-		private String GetIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetSynchronizationIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var declaration = TryGetIdProperty(typeDeclaration, out var property) ? String.Empty : $"\n\nprivate System.String {SYNCHRONIZATION_ID_FALLBACK_NAME} {{get;}} = System.Guid.NewGuid().ToString();";
+			var declaration = TryGetSynchronizationIdProperty(typeDeclaration, out var property) ?
+				String.Empty :
+				$"private System.String {SYNCHRONIZATION_ID_FALLBACK_NAME} {{get; set;}} = System.Guid.NewGuid().ToString();";
+
+			return declaration;
+		}
+
+		private Boolean TryGetInstanceIdProperty(BaseTypeDeclarationSyntax typeDeclaration, out PropertyDeclarationSyntax idProperty)
+		{
+			var properties = _analyzer.GetPropertyDeclarations(typeDeclaration, new[] { SynchronizationInstanceIdAttributeIdentifier });
+			ThrowIfMultiple(properties, "properties", SynchronizationInstanceIdAttributeIdentifier, typeDeclaration);
+
+			idProperty = properties.SingleOrDefault();
+
+			return idProperty != null;
+		}
+		private String GetInstanceIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var name = TryGetInstanceIdProperty(typeDeclaration, out var property) ? property.Identifier.Text : SYNCHRONIZATION_INSTANCE_ID_FALLBACK_NAME;
+
+			return name;
+		}
+		private String GetInstanceIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var declaration = TryGetInstanceIdProperty(typeDeclaration, out var property) ?
+				String.Empty :
+				$"private System.String {SYNCHRONIZATION_INSTANCE_ID_FALLBACK_NAME} {{get;}} = System.Guid.NewGuid().ToString();";
 
 			return declaration;
 		}

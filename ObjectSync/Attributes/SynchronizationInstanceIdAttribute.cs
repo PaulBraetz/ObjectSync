@@ -3,7 +3,7 @@
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property)]
-	public sealed class SynchronizationIdAttribute : Attribute
+	public sealed class SynchronizationInstanceIdAttribute : Attribute
 	{
 
 	}
