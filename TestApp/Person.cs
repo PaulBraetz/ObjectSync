@@ -6,31 +6,35 @@ namespace TestApp
 {
 	public partial class Person
 	{
-		public Person()
+		public const String NameName = "Name";
+
+		public Person(String name, Byte age) : this(Guid.NewGuid())
 		{
 			GetSynchronizationState().Synchronize();
-			Name = "Mike";
-			Age = 5;
+			Name = name;
+			Age = age;
 		}
-		public Person(String synchronizationId)
+		public Person(Guid id)
 		{
-			SynchronizationId = synchronizationId;
+			Id = id;
+			SyncId = id.ToString();
+
 			GetSynchronizationState().Synchronize();
 		}
 
 		[Synchronized("Name")]
-		private String _name;
+		private String? _name;
 
 		[Synchronized("Age")]
 		private Byte _age;
 
+		public Guid Id { get; }
+
+		[SynchronizationId]
+		private String SyncId { get; }
+
 		[SynchronizationAuthority]
 		private ISynchronizationAuthority _authority { get; } = new StaticSynchronizationAuthority();
-
-		public Person Clone()
-		{
-			return new Person(SynchronizationId);
-		}
 
 		public override String ToString()
 		{

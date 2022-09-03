@@ -33,10 +33,12 @@ namespace TestGenerator
 		private const String FORMAT_ITEM = "{" + nameof(FORMAT_ITEM) + "}";
 
 		private readonly CompilationAnalyzer _analyzer;
+		private readonly Compilation _compilation;
 
 		public ObjectSyncSourceExtractor(Compilation compilation)
 		{
 			_analyzer = new CompilationAnalyzer(compilation);
+			_compilation = compilation;
 		}
 
 		public IEnumerable<GeneratedSource> GetSources()
@@ -363,16 +365,20 @@ Set{propertyName}(value);
 			if (propertyNameArgument != null)
 			{
 				var children = propertyNameArgument.ChildNodes().ToArray();
-				if (children.First() is LiteralExpressionSyntax literalExpression &&
+				if (children[0] is LiteralExpressionSyntax literalExpression &&
 					literalExpression.IsKind(SyntaxKind.StringLiteralExpression))
 				{
 					propertyName = literalExpression.Token.ValueText;
 				}
-				else if (children.First() is InvocationExpressionSyntax invocation &&
+				else if (children[0] is InvocationExpressionSyntax invocation &&
 					invocation.Expression is IdentifierNameSyntax identifierName &&
 					identifierName.Identifier.ValueText == "nameof")
 				{
 					propertyName = invocation.ArgumentList.Arguments.SingleOrDefault()?.GetText().ToString();
+				}else if(children[0] is IdentifierNameSyntax identifier &&
+					_compilation.GetSemanticModel(identifier.SyntaxTree).GetSymbolInfo(identifier).Symbol is IFieldSymbol constantValue)
+				{
+					propertyName = constantValue.ConstantValue?.ToString();
 				}
 				else
 				{
