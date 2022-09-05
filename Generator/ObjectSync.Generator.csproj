@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<PackageTargetFallback>portable-net45+win8+wp8+wpa81</PackageTargetFallback>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<developmentDependency>true</developmentDependency>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<NoPackageAnalysis>true</NoPackageAnalysis>
+		<IsRoslynComponent>true</IsRoslynComponent>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>Paul Brätz</Authors>
+		<Description>ObjectSync Source Generator</Description>
+		<Copyright>2022</Copyright>
+		<PackageTags>Rhomicro</PackageTags>
+		<Version>1.0.0</Version>
+		<PackageId>RhoMicro.ObjectSync.Generator</PackageId>
+		<AssemblyName>ObjectSync.Generator</AssemblyName>
+		<RootNamespace>ObjectSync.Generator</RootNamespace>
+		<Company>RhoMicro</Company>
+		<PackageProjectUrl>https://github.com/PaulBraetz/ObjectSync/</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="..\Attributes\SynchronizationAuthorityAttribute.cs" Link="ObjectSync.Attributes\SynchronizationAuthorityAttribute.cs" />
+		<Compile Include="..\Attributes\InstanceIdAttribute.cs" Link="ObjectSync.Attributes\InstanceIdAttribute.cs" />
+		<Compile Include="..\Attributes\TypeIdAttribute.cs" Link="ObjectSync.Attributes\TypeIdAttribute.cs" />
+		<Compile Include="..\Attributes\SourceInstanceIdAttribute.cs" Link="ObjectSync.Attributes\SourceInstanceIdAttribute.cs" />
+		<Compile Include="..\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
+		<Compile Include="..\Attributes\GenerateEventsAttribute.cs" Link="ObjectSync.Attributes\GenerateEventsAttribute.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.2.0" PrivateAssets="all" />
+		<PackageReference Update="NETStandard.Library" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="ObjectSync.Attributes\" />
+	</ItemGroup>
+
+</Project>

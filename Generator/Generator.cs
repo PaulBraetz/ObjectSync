@@ -1,13 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Xml.Linq;
 
-namespace TestGenerator
+namespace ObjectSync.Generator
 {
 	[Generator]
-	public class Generator : ISourceGenerator
+	internal class Generator : ISourceGenerator
 	{
 		public void Execute(GeneratorExecutionContext context)
 		{

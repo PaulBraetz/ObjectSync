@@ -2,30 +2,30 @@
 
 namespace TestApp
 {
-	public sealed class MySynchronizationAuthority: StaticSynchronizationAuthority
+	public sealed class MySynchronizationAuthority : StaticSynchronizationAuthority
 	{
-		public override void Push<TProperty>(String synchronizationId, String propertyName, String instanceId, TProperty value)
+		protected override void Push<TProperty>(SyncInfo syncInfo, TProperty value)
 		{
-			Console.WriteLine($"Pushing:\t{instanceId}\tValue: {value}");
-			base.Push(synchronizationId, propertyName, instanceId, value);
-        }
+			Console.WriteLine($"Pushing:\t{syncInfo.PropertyStateId} = {value}");
+			base.Push(syncInfo, value);
+		}
 
-		public override void Subscribe<T>(String synchronizationId, String propertyName, String instanceId, Action<T> callback)
+		protected override void Subscribe<T>(SyncInfo syncInfo, Action<T> callback)
 		{
-			Console.WriteLine($"Subscribing:\t{instanceId}");
-			base.Subscribe(synchronizationId, propertyName, instanceId, callback);
-        }
+			Console.WriteLine($"Subscribing:\t{syncInfo.InstanceId} to {syncInfo.PropertyStateId}");
+			base.Subscribe(syncInfo, callback);
+		}
 
-		public override void Unsubscribe(String synchronizationId, String propertyName, String instanceId)
+		protected override void Unsubscribe(SyncInfo syncInfo)
 		{
-			Console.WriteLine($"Unsubscribing:\t{instanceId}");
-			base.Unsubscribe(synchronizationId, propertyName, instanceId);
-        }
+			Console.WriteLine($"Unsubscribing:\t{syncInfo.InstanceId} from {syncInfo.PropertyStateId}");
+			base.Unsubscribe(syncInfo);
+		}
 
-		public override TProperty Pull<TProperty>(String synchronizationId, String propertyName, String instanceId)
+		protected override TProperty Pull<TProperty>(SyncInfo syncInfo)
 		{
-			var value = base.Pull<TProperty>(synchronizationId, propertyName, instanceId);
-			Console.WriteLine($"Pulled:\t\t{instanceId}\tValue: {value}");
+			var value = base.Pull<TProperty>(syncInfo);
+			Console.WriteLine($"Pulled:\t\t{syncInfo.PropertyStateId} = {value}");
 			return value;
 		}
 	}

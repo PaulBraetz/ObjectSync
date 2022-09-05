@@ -1,10 +1,8 @@
 ﻿
 using Microsoft.CodeAnalysis;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace TestGenerator
+namespace ObjectSync.Generator
 {
 	internal static class Extensions
 	{
@@ -14,7 +12,7 @@ namespace TestGenerator
 		}
 		public static void AddSources(this GeneratorExecutionContext context, IEnumerable<GeneratedSource> sources)
 		{
-			foreach(var source in sources)
+			foreach (var source in sources)
 			{
 				context.AddSource(source);
 			}

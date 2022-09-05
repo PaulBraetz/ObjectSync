@@ -4,39 +4,64 @@ using System.ComponentModel;
 
 namespace TestApp
 {
-	public partial class Person
+	public partial class Person : INotifyPropertyChanging, INotifyPropertyChanged
 	{
-		public Person(String name, Byte age) : this(Guid.NewGuid())
+		public Person(String name) : this(Guid.NewGuid())
 		{
-			GetSynchronizationState().Synchronize();
 			Name = name;
-			Age = age;
 		}
 		public Person(Guid id)
 		{
-			Id = id;
-			SyncId = id.ToString();
-
-			GetSynchronizationState().Synchronize();
+			Synchronize(id);
 		}
 
 		[Synchronized]
+		[GenerateEvents]
 		private String? _name;
 
-		[Synchronized]
-		private Byte _age;
+		public event PropertyChangedEventHandler? PropertyChanged;
+		partial void OnPropertyChanged(String propertyName)
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
 
-		public Guid Id { get; }
+		public event PropertyChangingEventHandler? PropertyChanging;
+		partial void OnPropertyChanging(String propertyName)
+		{
+			PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+		}
 
-		[SynchronizationId]
-		private String SyncId { get; }
+		private Guid _id;
+		public Guid Id
+		{
+			get => _id;
+			private set
+			{
+				_id = value;
+				SourceInstanceId = _id.ToString();
+			}
+		}
+
+		[SourceInstanceId]
+		private String SourceInstanceId { get; set; }
 
 		[SynchronizationAuthority]
-		private ISynchronizationAuthority _authority { get; } = new StaticSynchronizationAuthority();
+		private ISynchronizationAuthority Authority { get; } = new StaticSynchronizationAuthority();
 
 		public override String ToString()
 		{
-			return $"Name: {_name}, Age: {_age}";
+			return $"Name: {_name},\tSource: {SourceInstanceId.Substring(0, 3)},\tSynchronized: {GetSynchronizationContext().IsSynchronized}";
+		}
+
+		public void Desynchronize()
+		{
+			GetSynchronizationContext().Desynchronize();
+		}
+		public void Synchronize(Guid id)
+		{
+			Id = id;
+
+			GetSynchronizationContext().Synchronize();
 		}
 	}
 }

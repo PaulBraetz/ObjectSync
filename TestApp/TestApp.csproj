@@ -8,8 +8,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\ObjectSync\ObjectSync.csproj" />
-		<ProjectReference Include="..\TestGenerator\TestGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Attributes\ObjectSync.Attributes.csproj" />
+		<ProjectReference Include="..\Synchronization\ObjectSync.Synchronization.csproj" />
+		<!--<ProjectReference Include="..\Generator\ObjectSync.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />-->
 	</ItemGroup>
 	<PropertyGroup>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
