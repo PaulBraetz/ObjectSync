@@ -30,7 +30,7 @@
 		<Compile Include="..\Attributes\TypeIdAttribute.cs" Link="ObjectSync.Attributes\TypeIdAttribute.cs" />
 		<Compile Include="..\Attributes\SourceInstanceIdAttribute.cs" Link="ObjectSync.Attributes\SourceInstanceIdAttribute.cs" />
 		<Compile Include="..\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
-		<Compile Include="..\Attributes\AutoNotifyAttribute.cs" Link="ObjectSync.Attributes\AutoNotifyAttribute.cs" />
+		<Compile Include="..\Attributes\ObserveAttribute.cs" Link="ObjectSync.Attributes\ObserveAttribute.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

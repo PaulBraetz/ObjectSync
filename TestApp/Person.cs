@@ -21,7 +21,7 @@ namespace TestApp
 		private String? _name;
 
 		[SynchronizationAuthority]
-		private ISynchronizationAuthority Authority { get; } = new StaticSynchronizationAuthority();
+		private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
 
 		public override String ToString()
 		{

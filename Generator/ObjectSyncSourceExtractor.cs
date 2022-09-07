@@ -25,11 +25,11 @@ namespace ObjectSync.Generator
 
 		private static readonly TypeIdentifierName SynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedAttribute>();
 		private static readonly TypeIdentifierName SynchronizationAuthorityAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationAuthorityAttribute>();
-		private static readonly TypeIdentifierName AutoNotifyAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.AutoNotifyAttribute>();
+		private static readonly TypeIdentifierName ObserveAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.ObserveAttribute>();
 
 		private static readonly TypeIdentifier SynchronizedAttributeIdentifier = TypeIdentifier.Create(SynchronizedAttributeName, AttributesNamespace);
 		private static readonly TypeIdentifier SynchronizationAuthorityAttributeIdentifier = TypeIdentifier.Create(SynchronizationAuthorityAttributeName, AttributesNamespace);
-		private static readonly TypeIdentifier AutoNotifyAttributeIdentifier = TypeIdentifier.Create(AutoNotifyAttributeName, AttributesNamespace);
+		private static readonly TypeIdentifier ObserveAttributeIdentifier = TypeIdentifier.Create(ObserveAttributeName, AttributesNamespace);
 		#endregion
 
 		#region Constants
@@ -557,7 +557,7 @@ private " + (defaultIsStatic ? "static " : String.Empty) + $"System.String {fall
 		private String GetEventMethodDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var methods = _analyzer.GetFieldDeclarations(typeDeclaration)
-				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, AutoNotifyAttributeIdentifier)) ?
+				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, ObserveAttributeIdentifier)) ?
 @"/// <summary>
 /// Invoked when a property value is changing.
 /// </summary>
@@ -665,7 +665,7 @@ $@"({parameter}) =>
 			var instance = fromWithinContext ?
 				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier) ?
 				$"\n{instance}OnPropertyChanging(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -676,7 +676,7 @@ $@"({parameter}) =>
 			var instance = fromWithinContext ?
 				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier) ?
 				$"\n{instance}OnPropertyChanged(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -728,7 +728,7 @@ $@"({parameter}) =>
 				{
 					propertyName = getPrefixedName(SYNCHRONIZED_PROPERTY_PREFIX);
 				}
-				else if (_analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier))
+				else if (_analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier))
 				{
 					propertyName = getPrefixedName(AUTO_NOTIFY_PROPERTY_PREFIX);
 				}
@@ -750,7 +750,7 @@ $@"({parameter}) =>
 
 		private IEnumerable<FieldDeclarationSyntax> GetFields(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, AutoNotifyAttributeIdentifier });
+			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, ObserveAttributeIdentifier });
 		}
 		private String GetFieldName(FieldDeclarationSyntax field)
 		{

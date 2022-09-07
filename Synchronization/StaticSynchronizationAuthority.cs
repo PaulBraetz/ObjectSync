@@ -76,6 +76,10 @@ namespace ObjectSync.Synchronization
 			}
 		}
 
+		private StaticSynchronizationAuthority() { }
+
+		public static readonly StaticSynchronizationAuthority Instance = new();
+
 		//PropertySynchronizationGroupId->PropertyState
 		private static readonly ConcurrentDictionary<String, Object> _propertyStates = new();
 
