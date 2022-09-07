@@ -1,4 +1,6 @@
-﻿namespace TestApp
+﻿using TestApp.Data.AnotherNamespace;
+
+namespace TestApp
 {
 	public class Program
 	{

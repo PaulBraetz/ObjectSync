@@ -3,7 +3,7 @@ using ObjectSync.Synchronization;
 using System;
 using System.ComponentModel;
 
-namespace TestApp
+namespace TestApp.Data.AnotherNamespace
 {
 	public partial class Person
 	{

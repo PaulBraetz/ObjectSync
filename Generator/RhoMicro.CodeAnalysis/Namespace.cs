@@ -105,7 +105,7 @@ namespace RhoMicro.CodeAnalysis
 			var appendSeparator = firstKind == IdentifierPart.PartKind.Name;
 
 			return appendSeparator ?
-				Parts.Add(IdentifierPart.Period()) :
+				Parts.Insert(0, IdentifierPart.Period()) :
 				Parts;
 		}
 
