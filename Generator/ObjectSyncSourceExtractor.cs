@@ -24,12 +24,14 @@ namespace ObjectSync.Generator
 		private static readonly TypeIdentifier SourceInstanceIdAttributeIdentifier = TypeIdentifier.Create(SourceInstanceIdAttributeName, AttributesNamespace);
 
 		private static readonly TypeIdentifierName SynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedAttribute>();
+		private static readonly TypeIdentifierName FastSynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.FastSynchronizedAttribute>();
 		private static readonly TypeIdentifierName SynchronizationAuthorityAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationAuthorityAttribute>();
-		private static readonly TypeIdentifierName ObserveAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.ObserveAttribute>();
+		private static readonly TypeIdentifierName ObservableAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.ObservableAttribute>();
 
 		private static readonly TypeIdentifier SynchronizedAttributeIdentifier = TypeIdentifier.Create(SynchronizedAttributeName, AttributesNamespace);
+		private static readonly TypeIdentifier FastSynchronizedAttributeIdentifier = TypeIdentifier.Create(FastSynchronizedAttributeName, AttributesNamespace);
 		private static readonly TypeIdentifier SynchronizationAuthorityAttributeIdentifier = TypeIdentifier.Create(SynchronizationAuthorityAttributeName, AttributesNamespace);
-		private static readonly TypeIdentifier ObserveAttributeIdentifier = TypeIdentifier.Create(ObserveAttributeName, AttributesNamespace);
+		private static readonly TypeIdentifier ObservableAttributeIdentifier = TypeIdentifier.Create(ObservableAttributeName, AttributesNamespace);
 		#endregion
 
 		#region Constants
@@ -74,7 +76,7 @@ namespace ObjectSync.Generator
 		private IEnumerable<BaseTypeDeclarationSyntax> GetSyncDeclarations()
 		{
 			var syncDeclarations = _analyzer.GetTypeDeclarations()
-				.Where(td => _analyzer.GetFieldDeclarations(td, include: new[] { SynchronizedAttributeIdentifier }).Any());
+				.Where(td => HasObservableFields(td) || HasSynchronizedFields(td));
 
 			return syncDeclarations;
 		}
@@ -134,9 +136,16 @@ An error occured while generating this source file for {GetName(typeDeclaration)
 		#region Context
 		private String GetSynchronizationContextDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
+			if (!HasSynchronizedFields(typeDeclaration))
+			{
+				return String.Empty;
+			}
+
 			var name = GetName(typeDeclaration);
 			var synchronizeMethod = GetSynchronizeMethod(typeDeclaration);
-			var desynchronizMethod = GetDesynchronizeMethod(typeDeclaration);
+			var desynchronizeMethod = GetDesynchronizeMethod(typeDeclaration);
+			var resynchroniezMethod = GetResynchronizeMethod(typeDeclaration);
+			var desynchronizeInvokeSynchronizeMethod = GetDesynchronizeInvokeSynchronizeMethod(typeDeclaration);
 
 			var declaration =
 $@"/// <summary>
@@ -144,69 +153,62 @@ $@"/// <summary>
 /// </summary>
 private sealed class {name}SynchronizationContext
 {{
-public {name}SynchronizationContext({name} instance)
-{{
-_instance = instance ?? throw new System.ArgumentNullException(""instance"");
-}}
+	public {name}SynchronizationContext({name} instance)
+	{{
+		_instance = instance ?? throw new System.ArgumentNullException(""instance"");
+	}}
 
-/// <summary>
-/// Invoked when <see cref=""IsSynchronized""/> is changed.
-/// </summary>
-public event System.EventHandler<System.Boolean> SynchronizationChanged;
+	/// <summary>
+	/// Invoked after <see cref=""IsSynchronized""/> has changed.
+	/// </summary>
+	public event System.EventHandler<System.Boolean> SynchronizationChanged;
 
-/// <summary>
-/// The instance whose synchronized properties are to be managed.
-/// </summary>
-private readonly {name} _instance;
+	/// <summary>
+	/// The instance whose synchronized properties are to be managed.
+	/// </summary>
+	private readonly {name} _instance;
 
-/// <summary>
-/// Sync object for synchronizing access to <see cref=""Synchronize""/>, <see cref=""Desynchronize""/> and <see cref=""Invoke(System.Action, System.Action)""/>.
-/// </summary>
-private readonly System.Object _syncRoot = new System.Object();
+	/// <summary>
+	/// Sync object for synchronizing access to synchronization logic.
+	/// </summary>
+	private readonly System.Object _syncRoot = new System.Object();
 
-/// <summary>
-/// Backing field for <see cref""IsSynchronized""/>.
-/// </summary>
-private System.Boolean _isSynchronized;
-/// <summary>
-/// Indicates wether the instance is synchronized.
-/// </summary>
-public System.Boolean IsSynchronized
-{{
-get => _isSynchronized;
-private set
-{{
-_isSynchronized = value;
-SynchronizationChanged?.Invoke(this, value);
-}}
-}}
+	/// <summary>
+	/// Backing field for <see cref""IsSynchronized""/>.
+	/// </summary>
+	private System.Boolean _isSynchronized;
+	/// <summary>
+	/// Indicates wether the instance is synchronized.
+	/// </summary>
+	public System.Boolean IsSynchronized => _isSynchronized;
 
-/// <summary>
-/// Invokes the methods provided in a threadsafe manner relative to <see cref=""Synchronize""/> and <see cref=""Desynchronize""/>.
-/// </summary>
-/// <param name=""whenSynchronized"">The method to execute if <see cref=""IsSynchronized""/> is <see langword=""true""/>.</param>
-/// <param name=""whenDesynchronized"">The method to execute if <see cref=""IsSynchronized""/> is <see langword=""false""/>.</param>
-public void Invoke(System.Action whenSynchronized = null, System.Action whenDesynchronized = null)
-{{
-if(whenSynchronized != null || whenDesynchronized != null)
-{{
-lock (_syncRoot)
-{{
-if (_isSynchronized && whenSynchronized != null)
-{{
-whenSynchronized.Invoke();
-}}
-else if (!_isSynchronized && whenDesynchronized != null)
-{{
-whenDesynchronized.Invoke();
-}}
-}}
-}}
-}}
+	/// <summary>
+	/// Invokes the methods provided in a threadsafe manner relative to the synchronization methods.
+	/// This means that the synchronization state of the instance is guaranteed not to change during the invocation.
+	/// The method will be passed the synchronization state at the time of invocation.
+	/// <para>
+	/// Invoking any method of this instance in <paramref name=""method""/> will likely cause a deadlock to occur.
+	/// </para>
+	/// </summary>
+	/// <param name = ""method"">The method to invoke.</param>
+	public void Invoke(System.Action<System.Boolean> method)
+	{{
+		if (method != null)
+		{{
+			lock (_syncRoot)
+			{{
+				method.Invoke(_isSynchronized);
+			}}
+		}}
+	}}
 
-{desynchronizMethod}
+	{synchronizeMethod}
 
-{synchronizeMethod}
+	{desynchronizeMethod}
+
+	{resynchroniezMethod}
+
+	{desynchronizeInvokeSynchronizeMethod}
 }}
 
 /// <summary>
@@ -218,13 +220,11 @@ private {name}SynchronizationContext __synchronizationContext;
 /// </summary>
 private {name}SynchronizationContext SynchronizationContext
 {{
-get => __synchronizationContext ??= new {name}SynchronizationContext(this);
+	get => __synchronizationContext ??= new {name}SynchronizationContext(this);
 }}";
 			return declaration;
-
 		}
 
-		#region Desynchronize
 		private String GetDesynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
@@ -235,34 +235,193 @@ get => __synchronizationContext ??= new {name}SynchronizationContext(this);
 
 			var declaration =
 $@"/// <summary>
-/// Desynchronizes the instance if <see cref=""IsSynchronized""/> is <see langword=""true""/> in a threadsafe manner relative to <see cref=""Invoke(System.Action, System.Action)""/> and <see cref=""Synchronize""/>.
+/// Desynchronizes the instance if it is synchronized.
 /// </summary>
 public void Desynchronize()
 {{
-if (_isSynchronized)
-{{
-lock (_syncRoot)
-{{
-if (_isSynchronized)
-{{
-var authority = {authorityAccess};
-if (authority != null)
-{{
-var typeId = {typeIdAccess};
-var sourceInstanceId = {sourceInstanceIdAccess};
-var instanceId = {instanceIdAccess};
+	if (_isSynchronized)
+	{{
+		lock (_syncRoot)
+		{{
+			if (_isSynchronized)
+			{{
+				var authority = {authorityAccess};
+				if (authority != null)
+				{{
+					var typeId = {typeIdAccess};
+					var sourceInstanceId = {sourceInstanceIdAccess};
+					var instanceId = {instanceIdAccess};
 
-{unsubscriptions}
-}}
+					{unsubscriptions}
+				}}
 
-IsSynchronized = false;
-}}
-}}
-}}
+				{GetIsSynchronizedSet(false, false)}
+			}}
+		}}
+	}}
 }}";
 
 			return declaration;
 		}
+		private String GetSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
+
+			var subscriptions = GetRevertableSubscriptions(typeDeclaration);
+			var pulls = GetPulls(typeDeclaration);
+			var pullAssignments = GetPullAssignments(typeDeclaration);
+
+			var declaration =
+$@"/// <summary>
+/// Synchronizes the instance if it is desynchronized.
+/// </summary>
+public void Synchronize()
+{{
+	if(!_isSynchronized)
+	{{
+		lock (_syncRoot)
+		{{
+			if(!_isSynchronized)
+			{{
+				var authority = {authorityAccess};
+				if (authority != null)
+				{{
+					var typeId = {typeIdAccess};
+					var sourceInstanceId = {sourceInstanceIdAccess};
+					var instanceId = {instanceIdAccess};
+
+					{subscriptions}
+
+					{pulls}
+
+					{pullAssignments}
+				}}
+
+				{GetIsSynchronizedSet(true, false)}
+			}}
+		}}
+	}}
+}}";
+
+			return declaration;
+		}
+		private String GetResynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
+
+			var subscriptions = GetRevertableSubscriptions(typeDeclaration);
+			var pulls = GetPulls(typeDeclaration);
+			var pullAssignments = GetPullAssignments(typeDeclaration);
+
+			var declaration =
+$@"/// <summary>
+/// Synchronizes the instance.
+/// If it is synchronized already, it is first desynchronized.
+/// </summary>
+public void Resynchronize()
+{{
+	lock (_syncRoot)
+	{{
+		var authority = {authorityAccess};
+		if (authority != null)
+		{{
+			var typeId = {typeIdAccess};
+			var sourceInstanceId = {sourceInstanceIdAccess};
+			var instanceId = {instanceIdAccess};
+
+			if (_isSynchronized)
+			{{
+				{unsubscriptions}
+
+				{GetIsSynchronizedSet(false, false)}
+			}}
+
+			{subscriptions}
+
+			{pulls}
+
+			{pullAssignments}
+			
+			{GetIsSynchronizedSet(true, false)}
+		}}
+		else {GetIsSynchronizedSet(true, true)}
+	}}
+}}";
+
+			return declaration;
+		}
+		private String GetDesynchronizeInvokeSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
+
+			var subscriptions = GetRevertableSubscriptions(typeDeclaration);
+			var pulls = GetPulls(typeDeclaration);
+			var pullAssignments = GetPullAssignments(typeDeclaration);
+
+			var declaration =
+$@"/// <summary>
+/// If <paramref name=""method""/> is not null, desynchronizes the instance, invokes <paramref name=""method""/>, and synchronizes the instance again, all in a threadsafe manner.
+/// This means that the synchronization state of the instance is guaranteed not to change during the invocation.
+/// <para>
+/// Invoking any method of this instance in <paramref name=""method""/> will likely cause a deadlock to occur.
+/// </para>
+/// </summary>
+/// <param name=""method"">The method to invoke after desynchronizing.</param>
+public void DesynchronizeInvokeSynchronize(System.Action method)
+{{
+	if(method != null)
+	{{
+		lock (_syncRoot)
+		{{
+			var authority = {authorityAccess};
+			if (authority != null)
+			{{
+				var typeId = {typeIdAccess};
+				var sourceInstanceId = {sourceInstanceIdAccess};
+				var instanceId = {instanceIdAccess};
+
+				if (_isSynchronized)
+				{{
+					{unsubscriptions}
+
+					{GetIsSynchronizedSet(false, false)}
+				}}
+
+				method.Invoke();
+
+				{subscriptions}
+
+				{pulls}
+
+				{pullAssignments}
+
+				{GetIsSynchronizedSet(true, false)}
+			}}
+			else
+			{{
+				method.Invoke();
+
+				{GetIsSynchronizedSet(true, true)}
+			}}
+		}}
+	}}
+}}";
+
+			return declaration;
+		}
+
 		private String GetRevertableUnsubscriptions(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var fields = GetFields(typeDeclaration);
@@ -281,13 +440,13 @@ IsSynchronized = false;
 			var expression =
 $@"try
 {{
-{unsubscription}
+	{unsubscription}
 }}
 catch
 {{
-//revert
-{revertion}
-throw;
+	//revert
+	{revertion}
+	throw;
 }}";
 			return expression;
 		}
@@ -298,64 +457,6 @@ throw;
 			var expression = $@"authority.Unsubscribe(typeId, ""{propertyName}"", sourceInstanceId, instanceId);";
 
 			return expression;
-		}
-
-		#endregion
-
-		#region Synchronize
-		private String GetSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
-			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
-			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
-			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
-			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
-
-			var subscriptions = GetRevertableSubscriptions(typeDeclaration);
-			var pulls = GetPulls(typeDeclaration);
-			var pullAssignments = GetPullAssignments(typeDeclaration);
-
-			var declaration =
-$@"/// <summary>
-/// Synchronizes the instance if <see cref=""IsSynchronized""/> is <see langword=""false""/> in a threadsafe manner relative to <see cref=""Invoke(System.Action, System.Action)""/> and <see cref=""Desynchronize""/>.
-/// </summary>
-public void Synchronize()
-{{
-if (!_isSynchronized)
-{{
-lock (_syncRoot)
-{{
-if (!_isSynchronized)
-{{
-var authority = {authorityAccess};
-if (authority != null)
-{{
-var typeId = {typeIdAccess};
-var sourceInstanceId = {sourceInstanceIdAccess};
-var instanceId = {instanceIdAccess};
-
-//avoid duplicate subscriptions by unsubscribing first
-if (_isSynchronized)
-{{
-{unsubscriptions}
-
-IsSynchronized = false;
-}}
-
-{subscriptions}
-
-{pulls}
-
-{pullAssignments}
-}}
-
-IsSynchronized = true;
-}}
-}}
-}}
-}}";
-
-			return declaration;
 		}
 
 		private String GetPulls(BaseTypeDeclarationSyntax typeDeclaration)
@@ -411,13 +512,13 @@ IsSynchronized = true;
 			var expression =
 $@"try
 {{
-{subscription}
+	{subscription}
 }}
 catch
 {{
-//revert
-{revertion}
-throw;
+	//revert
+	{revertion}
+	throw;
 }}";
 			return expression;
 		}
@@ -426,18 +527,39 @@ throw;
 			var fieldType = GetFieldType(field);
 
 			var propertyName = GetGeneratedPropertyName(field);
-			var setDelegate = GetSetDelegate(field, fromWithinContext: true);
+			var setBlock = GetSetBlock(field, fromWithinContext: true);
 
-			var expression = $@"authority.Subscribe<{fieldType}>(typeId, ""{propertyName}"", sourceInstanceId, instanceId, callback: {setDelegate});";
+			var expression = $@"authority.Subscribe<{fieldType}>(typeId, ""{propertyName}"", sourceInstanceId, instanceId, (value) => {{{setBlock}}});";
 
 			return expression;
 		}
-		#endregion
+
+		private String GetIsSynchronizedSet(Boolean value, Boolean checkChanged)
+		{
+			var valueString = value ? "true" : "false";
+			var inversion = value ? "!" : String.Empty;
+
+			var expression = checkChanged ?
+$@"if({inversion}_isSynchronized)
+{{
+	_isSynchronized = {valueString};
+	SynchronizationChanged?.Invoke(this, {valueString});
+}}" :
+$@"_isSynchronized = {valueString};
+SynchronizationChanged?.Invoke(this, {valueString});";
+
+			return expression;
+		}
 		#endregion
 
 		#region Ids
 		private String GetIdDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
 		{
+			if (!HasSynchronizedFields(typeDeclaration))
+			{
+				return String.Empty;
+			}
+
 			var typeIdDeclaration = TryGetTypeIdProperty(typeDeclaration, out var _) ?
 									String.Empty :
 									GetTypeIdPropertyDeclaration(typeDeclaration);
@@ -477,7 +599,11 @@ throw;
 $@"/// <summary>
 /// {fallbackSummary}
 /// </summary>
-private " + (defaultIsStatic ? "static " : String.Empty) + $"System.String {fallbackName} {{ get; " + (defaultHasSetter ? "set;  " : String.Empty) + "} = System.Guid.NewGuid().ToString();";
+private " + (defaultIsStatic ? "static " : String.Empty) + $@"System.String {fallbackName} 
+{{ 
+	get; " + (defaultHasSetter ? @"
+set;  " : String.Empty) +
+"} = System.Guid.NewGuid().ToString();";
 
 			return declaration;
 		}
@@ -557,7 +683,7 @@ private " + (defaultIsStatic ? "static " : String.Empty) + $"System.String {fall
 		private String GetEventMethodDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var methods = _analyzer.GetFieldDeclarations(typeDeclaration)
-				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, ObserveAttributeIdentifier)) ?
+				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, ObservableAttributeIdentifier)) ?
 @"/// <summary>
 /// Invoked when a property value is changing.
 /// </summary>
@@ -598,14 +724,14 @@ String.Empty;
 			var property =
 $@"{comment}public {fieldType} {propertyName} 
 {{
-get
-{{
-return {fieldName};
-}}
-set
-{{
-{setter}
-}}
+	get
+	{{
+		return {fieldName};
+	}}
+	set
+	{{
+		{setter}
+	}}
 }}";
 
 			return property;
@@ -613,49 +739,50 @@ set
 
 		private String GetGeneratedPropertySetterBody(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var propertyChangingCall = GetPropertyChangingCall(field, false);
 			var fieldType = GetFieldType(field);
-			var fieldName = GetFieldName(field);
-			var propertyChangedCall = GetPropertyChangedCall(field, false);
 			var propertyName = GetGeneratedPropertyName(field);
 			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: false);
 			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: false);
 			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: false);
 			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: false);
-			var setDelegate = GetSetDelegate(field, fromWithinContext: false);
+			var setBlock = GetSetBlock(field, fromWithinContext: false);
 
-			var body = _analyzer.HasAttribute(field.AttributeLists, field, SynchronizedAttributeIdentifier) ?
-$@"SynchronizationContext.Invoke(whenSynchronized: () =>
-{{{propertyChangingCall}
-this.{fieldName} = value;{propertyChangedCall}
-{authorityAccess}?.Push<{fieldType}>(typeId: {typeIdAccess}, 
-propertyName: ""{propertyName}"", 
-sourceInstanceId: {sourceInstanceIdAccess}, 
-instanceId: {instanceIdAccess}, value);
-}}, whenDesynchronized: {setDelegate});" :
-$@"{propertyChangingCall.Replace("\n", String.Empty)}
-this.{fieldName} = value;{propertyChangedCall}";
+			var isFastSynchronized = _analyzer.HasAttribute(field.AttributeLists, field, FastSynchronizedAttributeIdentifier);
+
+			var isSynchronized = isFastSynchronized || _analyzer.HasAttribute(field.AttributeLists, field, SynchronizedAttributeIdentifier);
+
+			var body = isSynchronized ?
+					isFastSynchronized ?
+$@"{setBlock}
+if(SynchronizationContext.IsSynchronized)
+{{		
+	{authorityAccess}?.Push<{fieldType}>({typeIdAccess}, ""{propertyName}"", {sourceInstanceIdAccess}, {instanceIdAccess}, value);
+}}" :
+$@"SynchronizationContext.Invoke((isSynchronized) =>
+{{
+	{setBlock}
+	if(isSynchronized)
+	{{		
+		{authorityAccess}?.Push<{fieldType}>({typeIdAccess}, ""{propertyName}"", {sourceInstanceIdAccess}, {instanceIdAccess}, value);
+	}}
+}});" :
+setBlock;
 
 			return body;
 		}
 
-		private String GetSetDelegate(FieldDeclarationSyntax field, Boolean fromWithinContext)
+		private String GetSetBlock(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{
-			var parameter = fromWithinContext ?
-				"value" :
-				String.Empty;
 			var propertyChangingCall = GetPropertyChangingCall(field, fromWithinContext);
 			var instance = fromWithinContext ?
-				$"_instance." :
-				String.Empty;
+				"_instance." :
+				"this.";
 			var fieldName = GetFieldName(field);
 			var propertyChangedCall = GetPropertyChangedCall(field, fromWithinContext);
 
 			var del =
-$@"({parameter}) =>
-{{{propertyChangingCall}
-{instance}{fieldName} = value;{propertyChangedCall}
-}}";
+$@"{propertyChangingCall}
+{instance}{fieldName} = value;{propertyChangedCall}";
 
 			return del;
 		}
@@ -665,8 +792,8 @@ $@"({parameter}) =>
 			var instance = fromWithinContext ?
 				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier) ?
-				$"\n{instance}OnPropertyChanging(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObservableAttributeIdentifier) ?
+				$"\n{instance}OnPropertyChanging(\"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
 			return call;
@@ -676,8 +803,8 @@ $@"({parameter}) =>
 			var instance = fromWithinContext ?
 				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier) ?
-				$"\n{instance}OnPropertyChanged(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, ObservableAttributeIdentifier) ?
+				$"\n{instance}OnPropertyChanged(\"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
 			return call;
@@ -685,12 +812,28 @@ $@"({parameter}) =>
 
 		private String GetGeneratedPropertyName(FieldDeclarationSyntax field)
 		{
-			_ = _analyzer.TryGetAttributes(field.AttributeLists, field, SynchronizedAttributeIdentifier, out var attributes);
+			IEnumerable<AttributeSyntax> fastAttributes = null;
+			IEnumerable<AttributeSyntax> slowAttributes = null;
+			IEnumerable<AttributeSyntax> observableAttributes = null;
 
-			var propertyNameArgument = attributes.SingleOrDefault()?
-				.ArgumentList?
-				.Arguments
-				.Single();
+			var isSynchronized = _analyzer.TryGetAttributes(field.AttributeLists, field, FastSynchronizedAttributeIdentifier, out fastAttributes) |
+								 _analyzer.TryGetAttributes(field.AttributeLists, field, SynchronizedAttributeIdentifier, out slowAttributes);
+
+			var isObservable = _analyzer.TryGetAttributes(field.AttributeLists, field, ObservableAttributeIdentifier, out observableAttributes);
+
+			var propertyNameArgument =
+				fastAttributes?.SingleOrDefault()?
+					.ArgumentList?
+					.Arguments
+					.SingleOrDefault() ??
+				slowAttributes?.SingleOrDefault()?
+					.ArgumentList?
+					.Arguments
+					.SingleOrDefault() ??
+				observableAttributes?.SingleOrDefault()?
+					.ArgumentList?
+					.Arguments
+					.SingleOrDefault();
 
 			var propertyName = String.Empty;
 
@@ -724,11 +867,11 @@ $@"({parameter}) =>
 					var sanitizedFieldName = Regex.Replace(fieldName, @"^_*", String.Empty);
 					propertyName = String.Concat(Char.ToUpperInvariant(sanitizedFieldName[0]), sanitizedFieldName.Substring(1, sanitizedFieldName.Length - 1));
 				}
-				else if (_analyzer.HasAttribute(field.AttributeLists, field, SynchronizedAttributeIdentifier))
+				else if (isSynchronized)
 				{
 					propertyName = getPrefixedName(SYNCHRONIZED_PROPERTY_PREFIX);
 				}
-				else if (_analyzer.HasAttribute(field.AttributeLists, field, ObserveAttributeIdentifier))
+				else if (_analyzer.HasAttribute(field.AttributeLists, field, ObservableAttributeIdentifier))
 				{
 					propertyName = getPrefixedName(AUTO_NOTIFY_PROPERTY_PREFIX);
 				}
@@ -748,9 +891,24 @@ $@"({parameter}) =>
 
 		#endregion
 
+		private Boolean HasObservableFields(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var fields = GetFields(typeDeclaration);
+			var hasObservable = fields.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, ObservableAttributeIdentifier));
+
+			return hasObservable;
+		}
+		private Boolean HasSynchronizedFields(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var fields = GetFields(typeDeclaration);
+			var hasSynchronized = fields.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, FastSynchronizedAttributeIdentifier) || _analyzer.HasAttribute(f.AttributeLists, f, SynchronizedAttributeIdentifier));
+
+			return hasSynchronized;
+		}
+
 		private IEnumerable<FieldDeclarationSyntax> GetFields(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, ObserveAttributeIdentifier });
+			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, FastSynchronizedAttributeIdentifier, ObservableAttributeIdentifier });
 		}
 		private String GetFieldName(FieldDeclarationSyntax field)
 		{

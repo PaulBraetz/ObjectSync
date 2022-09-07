@@ -14,5 +14,5 @@ namespace ObjectSync.Attributes
             PropertyName = propertyName;
         }
         public string PropertyName { get; }
-    }
+	}
 }

@@ -9,7 +9,7 @@ namespace TestApp
 	{
 		public Person(String name)
 		{
-			Synchronize(Guid.NewGuid().ToString());
+			SynchronizeTo(Guid.NewGuid().ToString());
 			Name = name;
 		}
 		public Person(Person person)
@@ -35,10 +35,15 @@ namespace TestApp
 		}
 		public void SynchronizeTo(Person person)
 		{
-			Synchronize(person.SourceInstanceId);
+			SynchronizeTo(person.SourceInstanceId);
 		}
-		private void Synchronize(string id)
+		/// <summary>
+		/// For <paramref name="id"/>
+		/// </summary>
+		/// <param name="id"></param>
+		private void SynchronizeTo(string id)
 		{
+			SynchronizationContext.Desynchronize();
 			SourceInstanceId = id;
 			SynchronizationContext.Synchronize();
 		}

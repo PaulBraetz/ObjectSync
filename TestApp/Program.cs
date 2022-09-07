@@ -22,8 +22,8 @@
 			p2.Name = "Steve";
 			print("p2.Name = \"Steve\";");
 
-			p2.SynchronizeTo(p0);
-			print("p2.SynchronizeTo(p0);");
+			p2.SynchronizeTo(p1);
+			print("p2.SynchronizeTo(p1);");
 
 			p2.Name = "Jacob";
 			print("p2.Name = \"Jacob\";");
