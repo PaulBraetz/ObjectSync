@@ -6,8 +6,10 @@ This assembly contains attributes that mark targets for source generation by the
 
 * Mark fields for synchronized property generation
 * Mark properties as the synchronization authority
-* Mark properties as the synchronization instance id
-* Mark synchronized fields for event method generation (OnPropertyChanged/OnPropertyChanging support)
+* Mark properties as the type id
+* Mark properties as the instance id
+* Mark properties as the source instance id
+* Mark fields for event method generation (`OnPropertyChanged`/`OnPropertyChanging`)
 
 ## Versioning ##
 
