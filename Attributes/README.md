@@ -242,12 +242,14 @@ Then provide implementations for the generated partial methods, implementing `IN
 public event PropertyChangedEventHandler? PropertyChanged;
 partial void OnPropertyChanged(String propertyName)
 {
-	PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
 public event PropertyChangingEventHandler? PropertyChanging;
 partial void OnPropertyChanging(String propertyName)
 {
-	PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+    PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
 }
 ```
+
+Now, everytime a property annotated with the `ObserveAttribute` is set, you may react to the change in your partial method implementation.
