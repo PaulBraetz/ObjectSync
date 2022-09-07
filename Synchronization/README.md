@@ -30,7 +30,7 @@ Inherit from `SynchronizationAuthorityBase` for simplified method signatures usi
 `StaticSynchronizationAuthority` provides facilities for synchronizing instances within an AppDomain.
 Access it's instances by accessing `StaticSynchronizationAuthority.Instance`:
 
-'''cs
+```cs
 [SynchronizationAuthority]
 private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
-'''
+```
