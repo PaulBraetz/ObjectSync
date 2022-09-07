@@ -41,7 +41,7 @@ private String? _name;
 ```
 
 Note that the ObjectSync.Generator will recognize two naming conventions for field identifiers starting with:
-* any number of prefixed underscores
+* any number of underscores
 * a lower case letter
 
 In these cases, the ObjectSync.Generator will generate a simple uppercase version of the field identifier, with underscores omitted.
