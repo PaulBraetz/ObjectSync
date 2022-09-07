@@ -77,7 +77,7 @@ void Subscribe<TProperty>(String typeId, String propertyName, String sourceInsta
 void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId);
 ```
 
-For more details on synchronization authorities, consult the [ObjectSync.Synchronization readme](https://github.com/PaulBraetz/ObjectSync/Synchronization).
+For more details on synchronization authorities, see the [ObjectSync.Synchronization readme](https://github.com/PaulBraetz/ObjectSync/tree/master/Synchronization).
 
 ### Calling `GetSynchronizationState().Synchronize()` During The Object Initialization Phase ###
 

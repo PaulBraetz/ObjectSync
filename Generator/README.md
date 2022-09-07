@@ -3,7 +3,7 @@
 This project contains the ObjectSync Source Generator.
 It is not intended for direct consumption, and instead to be installed as an analyzer.
 It is utilized by annotating your code with attributes provided in ObjectSync.Attributes.
-For more information, see the [ObjectSync.Attributes readme](https://github.com/PaulBraetz/ObjectSync/Attributes).
+For more information, see the [ObjectSync.Attributes readme](https://github.com/PaulBraetz/ObjectSync/tree/master/Attributes).
 
 ## Versioning ##
 
