@@ -131,12 +131,12 @@ protected virtual void Dispose(bool disposing)
 
 Calling `SynchronizationContext.Invoke(Action, Action)` will enable you to synchronize sections of code with synchronization state changes.
 For example, the method is used in generated setters in order to avoid unnecessary calls to the authority's `.Push`-method.
-The methods first argument will only be invoked when `SynchronizationContext.IsSynchronized` is true, whereas the second parameter will only be invoked when `SynchronizationContext.IsSynchronized`is false.
-The comparisons involved here will be executed inside a lock statement that is aquired on a private `_syncRoot`.
+The methods first argument will only be invoked when `SynchronizationContext.IsSynchronized` is true, whereas the second parameter will only be invoked when `SynchronizationContext.IsSynchronized` is false.
+The comparisons involved here will be executed inside a lock statement that is aquired on a private `_syncRoot` object.
 `SynchronizationContext.Desynchronize()` and `SynchronizationContext.Synchronize()` are also executed by aquiring a lock on `_syncRoot`, thereby synchronizing all three invocations.
 Whilst this lock guarantees the correct execution of the three methods, it is a bottleneck on setter invocations.
 
-***Therefore, you should ensure an authorization strategy that synergizes well with the types and amount of synchronized properties in your application.***
+***Therefore, you should utilize a synchronization strategy that synergizes well with the types and amount of synchronized properties in your application.***
 
 - - - -
 
