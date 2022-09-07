@@ -18,30 +18,38 @@ namespace ObjectSync.Generator
 		private static readonly TypeIdentifierName TypeIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.TypeIdAttribute>();
 		private static readonly TypeIdentifierName SourceInstanceIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SourceInstanceIdAttribute>();
 		private static readonly TypeIdentifierName InstanceIdAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.InstanceIdAttribute>();
+
 		private static readonly TypeIdentifier TypeIdAttributeIdentifier = TypeIdentifier.Create(TypeIdAttributeName, AttributesNamespace);
 		private static readonly TypeIdentifier InstanceIdAttributeIdentifier = TypeIdentifier.Create(InstanceIdAttributeName, AttributesNamespace);
 		private static readonly TypeIdentifier SourceInstanceIdAttributeIdentifier = TypeIdentifier.Create(SourceInstanceIdAttributeName, AttributesNamespace);
 
 		private static readonly TypeIdentifierName SynchronizedAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizedAttribute>();
 		private static readonly TypeIdentifierName SynchronizationAuthorityAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.SynchronizationAuthorityAttribute>();
-		private static readonly TypeIdentifierName GenerateEventsAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.GenerateEventsAttribute>();
+		private static readonly TypeIdentifierName AutoNotifyAttributeName = TypeIdentifierName.CreateAttribute<ObjectSync.Attributes.AutoNotifyAttribute>();
+
 		private static readonly TypeIdentifier SynchronizedAttributeIdentifier = TypeIdentifier.Create(SynchronizedAttributeName, AttributesNamespace);
 		private static readonly TypeIdentifier SynchronizationAuthorityAttributeIdentifier = TypeIdentifier.Create(SynchronizationAuthorityAttributeName, AttributesNamespace);
-		private static readonly TypeIdentifier GenerateEventsAttributeIdentifier = TypeIdentifier.Create(GenerateEventsAttributeName, AttributesNamespace);
+		private static readonly TypeIdentifier AutoNotifyAttributeIdentifier = TypeIdentifier.Create(AutoNotifyAttributeName, AttributesNamespace);
 		#endregion
 
 		#region Constants
 		private const String TYPE_ID_DEFAULT_NAME = "TypeId";
-		private const String SOURCE_INSTANCE_ID_DEFAULT_NAME = "SourceInstanceId";
-		private const String INSTANCE_ID_DEFAULT_NAME = "InstanceId";
-
+		private const String TYPE_ID_DEFAULT_SUMMARY = "The Id identifying this instance's type.";
 		private const Boolean TYPE_ID_DEFAULT_IS_STATIC = true;
-		private const Boolean SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC = true;
-		private const Boolean INSTANCE_ID_DEFAULT_IS_STATIC = false;
+		private const Boolean TYPE_ID_DEFAULT_HAS_SETTER = false;
 
-		private const String CONTEXT_INSTANCE_NAME = "_instance";
+		private const String SOURCE_INSTANCE_ID_DEFAULT_NAME = "SourceInstanceId";
+		private const String SOURCE_INSTANCE_ID_DEFAULT_SUMMARY = "The Id identifying this instance's property data source.";
+		private const Boolean SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC = false;
+		private const Boolean SOURCE_INSTANCE_ID_DEFAULT_HAS_SETTER = true;
+
+		private const String INSTANCE_ID_DEFAULT_NAME = "InstanceId";
+		private const String INSTANCE_ID_DEFAULT_SUMMARY = "The Id identifying this instance.";
+		private const Boolean INSTANCE_ID_DEFAULT_IS_STATIC = false;
+		private const Boolean INSTANCE_ID_DEFAULT_HAS_SETTER = false;
+
 		private const String SYNCHRONIZED_PROPERTY_PREFIX = "Synchronized";
-		private const String EVENTFUL_PROPERTY_PREFIX = "Eventful";
+		private const String AUTO_NOTIFY_PROPERTY_PREFIX = "Observable";
 		private const String DEFAULT_PROPERTY_PREFIX = "Generated";
 		private const String FORMAT_ITEM = "{" + nameof(FORMAT_ITEM) + "}";
 		#endregion
@@ -123,8 +131,7 @@ An error occured while generating this source file for {GetName(typeDeclaration)
 			return declaration;
 		}
 
-		#region State
-
+		#region Context
 		private String GetSynchronizationContextDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var name = GetName(typeDeclaration);
@@ -132,62 +139,87 @@ An error occured while generating this source file for {GetName(typeDeclaration)
 			var desynchronizMethod = GetDesynchronizeMethod(typeDeclaration);
 
 			var declaration =
-$@"private sealed class SynchronizationContext
+$@"/// <summary>
+/// The context encapsulating the synchronization state of <see cref=""{name}""/> instances.
+/// </summary>
+private sealed class {name}SynchronizationContext
 {{
-public SynchronizationContext({name} instance)
+public {name}SynchronizationContext({name} instance)
 {{
-{CONTEXT_INSTANCE_NAME} = instance;
+_instance = instance ?? throw new System.ArgumentNullException(""instance"");
 }}
 
-public Boolean IsSynchronized => _synchronizationState == 1;
+/// <summary>
+/// Invoked when <see cref=""IsSynchronized""/> is changed.
+/// </summary>
+public event System.EventHandler<System.Boolean> SynchronizationChanged;
 
-private readonly {name} {CONTEXT_INSTANCE_NAME}; 
-private System.Int32 _synchronizationState = 0;
+/// <summary>
+/// The instance whose synchronized properties are to be managed.
+/// </summary>
+private readonly {name} _instance;
 
-public void Invoke(Action whenSynchronized = null, Action whenDesynchronized = null)
+/// <summary>
+/// Sync object for synchronizing access to <see cref=""Synchronize""/>, <see cref=""Desynchronize""/> and <see cref=""Invoke(System.Action, System.Action)""/>.
+/// </summary>
+private readonly System.Object _syncRoot = new System.Object();
+
+/// <summary>
+/// Backing field for <see cref""IsSynchronized""/>.
+/// </summary>
+private System.Boolean _isSynchronized;
+/// <summary>
+/// Indicates wether the instance is synchronized.
+/// </summary>
+public System.Boolean IsSynchronized
 {{
-if (whenSynchronized != null && System.Threading.Interlocked.CompareExchange(ref _synchronizationState, -1, 1) == 1)
+get => _isSynchronized;
+private set
 {{
-try
+_isSynchronized = value;
+SynchronizationChanged?.Invoke(this, value);
+}}
+}}
+
+/// <summary>
+/// Invokes the methods provided in a threadsafe manner relative to <see cref=""Synchronize""/> and <see cref=""Desynchronize""/>.
+/// </summary>
+/// <param name=""whenSynchronized"">The method to execute if <see cref=""IsSynchronized""/> is <see langword=""true""/>.</param>
+/// <param name=""whenDesynchronized"">The method to execute if <see cref=""IsSynchronized""/> is <see langword=""false""/>.</param>
+public void Invoke(System.Action whenSynchronized = null, System.Action whenDesynchronized = null)
+{{
+if(whenSynchronized != null || whenDesynchronized != null)
+{{
+lock (_syncRoot)
+{{
+if (_isSynchronized && whenSynchronized != null)
 {{
 whenSynchronized.Invoke();
 }}
-catch
-{{
-throw;
-}}
-finally
-{{
-_synchronizationState = 1;
-}}
-}}
-else if (whenDesynchronized != null && System.Threading.Interlocked.CompareExchange(ref _synchronizationState, -1, 0) == 0)
-{{
-try
+else if (!_isSynchronized && whenDesynchronized != null)
 {{
 whenDesynchronized.Invoke();
 }}
-catch
-{{
-throw;
-}}
-finally
-{{
-_synchronizationState = 0;
 }}
 }}
 }}
+
+{desynchronizMethod}
 
 {synchronizeMethod}
-{desynchronizMethod}
 }}
 
-private SynchronizationContext __synchronizationState;
-private SynchronizationContext GetSynchronizationContext()
+/// <summary>
+/// Backing field for <see cref=""SynchronizationContext""/>.
+/// </summary>
+private {name}SynchronizationContext __synchronizationContext;
+/// <summary>
+/// The context responsible for managing this instance's property synchronization.
+/// </summary>
+private {name}SynchronizationContext SynchronizationContext
 {{
-return __synchronizationState ??= new SynchronizationContext(this);
+get => __synchronizationContext ??= new {name}SynchronizationContext(this);
 }}";
-
 			return declaration;
 
 		}
@@ -195,53 +227,75 @@ return __synchronizationState ??= new SynchronizationContext(this);
 		#region Desynchronize
 		private String GetDesynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var authority = GetAuthorityPropertyName(typeDeclaration);
-			var unsubscriptions = String.Join("\n", GetUnsubscriptionExpressions(typeDeclaration));
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
 
 			var declaration =
-$@"public void Desynchronize()
+$@"/// <summary>
+/// Desynchronizes the instance if <see cref=""IsSynchronized""/> is <see langword=""true""/> in a threadsafe manner relative to <see cref=""Invoke(System.Action, System.Action)""/> and <see cref=""Synchronize""/>.
+/// </summary>
+public void Desynchronize()
 {{
-if(System.Threading.Interlocked.CompareExchange(ref _synchronizationState, -1, 1) == 1)
+if (_isSynchronized)
 {{
-try
+lock (_syncRoot)
 {{
-var authority = {CONTEXT_INSTANCE_NAME}?.{authority};
-if(authority != null)
+if (_isSynchronized)
 {{
+var authority = {authorityAccess};
+if (authority != null)
+{{
+var typeId = {typeIdAccess};
+var sourceInstanceId = {sourceInstanceIdAccess};
+var instanceId = {instanceIdAccess};
+
 {unsubscriptions}
 }}
 
-_synchronizationState = 0;
+IsSynchronized = false;
 }}
-catch
-{{
-_synchronizationState = 1;
-throw;
 }}
 }}
 }}";
 
 			return declaration;
 		}
-		private IEnumerable<String> GetUnsubscriptionExpressions(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetRevertableUnsubscriptions(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var fields = GetFields(typeDeclaration);
-			var expressions = fields.Select(f => GetUnsubscriptionExpression(f, typeDeclaration));
+			var requiredRevertions = new List<FieldDeclarationSyntax>();
+			var expressions = String.Join("\n", fields.Select(f => GetRevertableUnsubscription(f, requiredRevertions)));
 
 			return expressions;
 		}
-		private String GetUnsubscriptionExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetRevertableUnsubscription(FieldDeclarationSyntax field, List<FieldDeclarationSyntax> requiredRevertions)
 		{
-			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInState: true);
-			var propertyName = GetGeneratedPropertyName(field);
-			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
-			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
+			requiredRevertions.Add(field);
+
+			var unsubscription = GetUnsubscription(field);
+			var revertion = String.Join("\n", requiredRevertions.Select(f => GetSubscription(f)));
 
 			var expression =
-$@"authority.Unsubscribe(typeId: {typeIdAccess}, 
-propertyName: ""{propertyName}"", 
-sourceInstanceId: {sourceInstanceIdAccess}, 
-instanceId: {instanceIdAccess});";
+$@"try
+{{
+{unsubscription}
+}}
+catch
+{{
+//revert
+{revertion}
+throw;
+}}";
+			return expression;
+		}
+		private String GetUnsubscription(FieldDeclarationSyntax field)
+		{
+			var propertyName = GetGeneratedPropertyName(field);
+
+			var expression = $@"authority.Unsubscribe(typeId, ""{propertyName}"", sourceInstanceId, instanceId);";
 
 			return expression;
 		}
@@ -251,88 +305,132 @@ instanceId: {instanceIdAccess});";
 		#region Synchronize
 		private String GetSynchronizeMethod(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			var authority = GetAuthorityPropertyName(typeDeclaration);
-			var subscriptions = String.Join("\n", GetSubscriptionExpressions(typeDeclaration));
-			var pulls = String.Join("\n", GetPullExpressions(typeDeclaration));
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: true);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: true);
+			var unsubscriptions = GetRevertableUnsubscriptions(typeDeclaration);
 
-			var initializer =
-$@"public void Synchronize()
+			var subscriptions = GetRevertableSubscriptions(typeDeclaration);
+			var pulls = GetPulls(typeDeclaration);
+			var pullAssignments = GetPullAssignments(typeDeclaration);
+
+			var declaration =
+$@"/// <summary>
+/// Synchronizes the instance if <see cref=""IsSynchronized""/> is <see langword=""false""/> in a threadsafe manner relative to <see cref=""Invoke(System.Action, System.Action)""/> and <see cref=""Desynchronize""/>.
+/// </summary>
+public void Synchronize()
 {{
-if(System.Threading.Interlocked.CompareExchange(ref _synchronizationState, -1, 0) == 0)
+if (!_isSynchronized)
 {{
-try
+lock (_syncRoot)
 {{
-var authority = {CONTEXT_INSTANCE_NAME}?.{authority};
-if(authority != null)
+if (!_isSynchronized)
 {{
-{pulls}
+var authority = {authorityAccess};
+if (authority != null)
+{{
+var typeId = {typeIdAccess};
+var sourceInstanceId = {sourceInstanceIdAccess};
+var instanceId = {instanceIdAccess};
+
+//avoid duplicate subscriptions by unsubscribing first
+if (_isSynchronized)
+{{
+{unsubscriptions}
+
+IsSynchronized = false;
+}}
 
 {subscriptions}
+
+{pulls}
+
+{pullAssignments}
 }}
 
-_synchronizationState = 1;
+IsSynchronized = true;
 }}
-catch
-{{
-_synchronizationState = 0;
-throw;
 }}
 }}
 }}";
 
-			return initializer;
+			return declaration;
 		}
-		private IEnumerable<String> GetPullExpressions(BaseTypeDeclarationSyntax typeDeclaration)
+
+		private String GetPulls(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var fields = GetFields(typeDeclaration);
-			var pulls = fields.Select(f => GetPullExpression(f, typeDeclaration));
+			var expressions = String.Join("\n", fields.Select(GetPull));
 
-			return pulls;
+			return expressions;
 		}
-		private String GetPullExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetPull(FieldDeclarationSyntax field)
 		{
 			var fieldType = GetFieldType(field);
+			var propertyName = GetGeneratedPropertyName(field);
+
+			var expression = $@"var valueOf{propertyName} = authority.Pull<{fieldType}>(typeId, ""{propertyName}"", sourceInstanceId, instanceId);";
+
+			return expression;
+		}
+
+		private String GetPullAssignments(BaseTypeDeclarationSyntax typeDeclaration)
+		{
+			var fields = GetFields(typeDeclaration);
+			var expressions = String.Join("\n", fields.Select(GetPullAssignment));
+
+			return expressions;
+		}
+		private String GetPullAssignment(FieldDeclarationSyntax field)
+		{
+			var propertyName = GetGeneratedPropertyName(field);
 			var fieldName = GetFieldName(field);
 
-			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInState: true);
-			var propertyName = GetGeneratedPropertyName(field);
-			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
-			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
+			var expression = $"_instance.{fieldName} = valueOf{propertyName};";
 
-			var subscription =
-$@"{CONTEXT_INSTANCE_NAME}.{fieldName} = authority.Pull<{fieldType}>(typeId: {typeIdAccess},
-propertyName: ""{propertyName}"",
-sourceInstanceId: {sourceInstanceIdAccess},
-instanceId: {instanceIdAccess});";
-
-			return subscription;
+			return expression;
 		}
 
-		private IEnumerable<String> GetSubscriptionExpressions(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetRevertableSubscriptions(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var fields = GetFields(typeDeclaration);
-			var subscriptions = fields.Select(f => GetSubscriptionExpression(f, typeDeclaration));
 
-			return subscriptions;
+			var requiredRevertions = new List<FieldDeclarationSyntax>();
+			var expressions = String.Join("\n", fields.Select(f => GetRevertableSubscription(f, requiredRevertions)));
+
+			return expressions;
 		}
-		private String GetSubscriptionExpression(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetRevertableSubscription(FieldDeclarationSyntax field, List<FieldDeclarationSyntax> requiredRevertions)
+		{
+			requiredRevertions.Add(field);
+
+			var subscription = GetSubscription(field);
+			var revertion = String.Join("\n", requiredRevertions.Select(f => GetUnsubscription(f)));
+
+			var expression =
+$@"try
+{{
+{subscription}
+}}
+catch
+{{
+//revert
+{revertion}
+throw;
+}}";
+			return expression;
+		}
+		private String GetSubscription(FieldDeclarationSyntax field)
 		{
 			var fieldType = GetFieldType(field);
 
-			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInState: true);
 			var propertyName = GetGeneratedPropertyName(field);
-			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
-			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInState: true);
 			var setDelegate = GetSetDelegate(field, fromWithinContext: true);
 
-			var subscription =
-$@"authority.Subscribe<{fieldType}>(typeId: {typeIdAccess}, 
-propertyName: ""{propertyName}"", 
-sourceInstanceId: {sourceInstanceIdAccess}, 
-instanceId: {instanceIdAccess}, 
-callback: {setDelegate});";
+			var expression = $@"authority.Subscribe<{fieldType}>(typeId, ""{propertyName}"", sourceInstanceId, instanceId, callback: {setDelegate});";
 
-			return subscription;
+			return expression;
 		}
 		#endregion
 		#endregion
@@ -372,15 +470,18 @@ callback: {setDelegate});";
 
 			return name;
 		}
-		private String GetIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration, TypeIdentifier idAttributeIdentifier, String fallbackName, Boolean defaultIsStatic)
+		private String GetIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration, TypeIdentifier idAttributeIdentifier, String fallbackName, String fallbackSummary, Boolean defaultIsStatic, Boolean defaultHasSetter)
 		{
 			var declaration = TryGetIdProperty(typeDeclaration, idAttributeIdentifier, out _) ?
 				String.Empty :
-				"private " + (defaultIsStatic ? "static " : String.Empty) + $"System.String {fallbackName} {{ get; }} = System.Guid.NewGuid().ToString();";
+$@"/// <summary>
+/// {fallbackSummary}
+/// </summary>
+private " + (defaultIsStatic ? "static " : String.Empty) + $"System.String {fallbackName} {{ get; " + (defaultHasSetter ? "set;  " : String.Empty) + "} = System.Guid.NewGuid().ToString();";
 
 			return declaration;
 		}
-		private String GetIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, TypeIdentifier idAttributeIdentifier, String fallbackName, Boolean defaultIsStatic, Boolean accessingInState)
+		private String GetIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, TypeIdentifier idAttributeIdentifier, String fallbackName, Boolean defaultIsStatic, Boolean accessingInContext)
 		{
 			var propertyName = GetIdPropertyName(typeDeclaration, idAttributeIdentifier, fallbackName);
 
@@ -394,9 +495,9 @@ callback: {setDelegate});";
 				var name = GetName(typeDeclaration);
 				access = $"{name}.{propertyName}";
 			}
-			else if (accessingInState)
+			else if (accessingInContext)
 			{
-				access = $"{CONTEXT_INSTANCE_NAME}.{propertyName}";
+				access = $"_instance.{propertyName}";
 			}
 			else
 			{
@@ -413,15 +514,11 @@ callback: {setDelegate});";
 		}
 		private String GetTypeIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return GetIdPropertyDeclaration(typeDeclaration, TypeIdAttributeIdentifier, TYPE_ID_DEFAULT_NAME, TYPE_ID_DEFAULT_IS_STATIC);
+			return GetIdPropertyDeclaration(typeDeclaration, TypeIdAttributeIdentifier, TYPE_ID_DEFAULT_NAME, TYPE_ID_DEFAULT_SUMMARY, TYPE_ID_DEFAULT_IS_STATIC, TYPE_ID_DEFAULT_HAS_SETTER);
 		}
-		private String GetTypeIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInState)
+		private String GetTypeIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInContext)
 		{
-			return GetIdPropertyAccess(typeDeclaration, TypeIdAttributeIdentifier, TYPE_ID_DEFAULT_NAME, TYPE_ID_DEFAULT_IS_STATIC, accessingInState);
-		}
-		private String GetTypeIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			return GetIdPropertyName(typeDeclaration, TypeIdAttributeIdentifier, TYPE_ID_DEFAULT_NAME);
+			return GetIdPropertyAccess(typeDeclaration, TypeIdAttributeIdentifier, TYPE_ID_DEFAULT_NAME, TYPE_ID_DEFAULT_IS_STATIC, accessingInContext);
 		}
 		#endregion
 
@@ -432,15 +529,11 @@ callback: {setDelegate});";
 		}
 		private String GetSourceInstanceIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return GetIdPropertyDeclaration(typeDeclaration, SourceInstanceIdAttributeIdentifier, SOURCE_INSTANCE_ID_DEFAULT_NAME, SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC);
+			return GetIdPropertyDeclaration(typeDeclaration, SourceInstanceIdAttributeIdentifier, SOURCE_INSTANCE_ID_DEFAULT_NAME, SOURCE_INSTANCE_ID_DEFAULT_SUMMARY, SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC, SOURCE_INSTANCE_ID_DEFAULT_HAS_SETTER);
 		}
-		private String GetSourceInstanceIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInState)
+		private String GetSourceInstanceIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInContext)
 		{
-			return GetIdPropertyAccess(typeDeclaration, SourceInstanceIdAttributeIdentifier, SOURCE_INSTANCE_ID_DEFAULT_NAME, SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC, accessingInState);
-		}
-		private String GetSourceInstanceIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			return GetIdPropertyName(typeDeclaration, SourceInstanceIdAttributeIdentifier, SOURCE_INSTANCE_ID_DEFAULT_NAME);
+			return GetIdPropertyAccess(typeDeclaration, SourceInstanceIdAttributeIdentifier, SOURCE_INSTANCE_ID_DEFAULT_NAME, SOURCE_INSTANCE_ID_DEFAULT_IS_STATIC, accessingInContext);
 		}
 		#endregion
 
@@ -451,15 +544,11 @@ callback: {setDelegate});";
 		}
 		private String GetInstanceIdPropertyDeclaration(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return GetIdPropertyDeclaration(typeDeclaration, InstanceIdAttributeIdentifier, INSTANCE_ID_DEFAULT_NAME, INSTANCE_ID_DEFAULT_IS_STATIC);
+			return GetIdPropertyDeclaration(typeDeclaration, InstanceIdAttributeIdentifier, INSTANCE_ID_DEFAULT_NAME, INSTANCE_ID_DEFAULT_SUMMARY, INSTANCE_ID_DEFAULT_IS_STATIC, INSTANCE_ID_DEFAULT_HAS_SETTER);
 		}
-		private String GetInstanceIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInState)
+		private String GetInstanceIdPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInContext)
 		{
-			return GetIdPropertyAccess(typeDeclaration, InstanceIdAttributeIdentifier, INSTANCE_ID_DEFAULT_NAME, INSTANCE_ID_DEFAULT_IS_STATIC, accessingInState);
-		}
-		private String GetInstanceIdPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
-		{
-			return GetIdPropertyName(typeDeclaration, InstanceIdAttributeIdentifier, INSTANCE_ID_DEFAULT_NAME);
+			return GetIdPropertyAccess(typeDeclaration, InstanceIdAttributeIdentifier, INSTANCE_ID_DEFAULT_NAME, INSTANCE_ID_DEFAULT_IS_STATIC, accessingInContext);
 		}
 		#endregion
 		#endregion
@@ -468,8 +557,14 @@ callback: {setDelegate});";
 		private String GetEventMethodDeclarations(BaseTypeDeclarationSyntax typeDeclaration)
 		{
 			var methods = _analyzer.GetFieldDeclarations(typeDeclaration)
-				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, GenerateEventsAttributeIdentifier)) ?
-@"partial void OnPropertyChanging(System.String propertyName);
+				.Any(f => _analyzer.HasAttribute(f.AttributeLists, f, AutoNotifyAttributeIdentifier)) ?
+@"/// <summary>
+/// Invoked when a property value is changing.
+/// </summary>
+partial void OnPropertyChanging(System.String propertyName);
+/// <summary>
+/// Invoked when a property value has changed.
+/// </summary>
 partial void OnPropertyChanged(System.String propertyName);" :
 String.Empty;
 
@@ -487,6 +582,13 @@ String.Empty;
 		}
 		private String GetGeneratedPropertyDeclaration(FieldDeclarationSyntax field, BaseTypeDeclarationSyntax typeDeclaration)
 		{
+			var comment = String.Join("\n", field.DescendantTrivia()
+				.Where(t => t.IsKind(SyntaxKind.SingleLineCommentTrivia)));
+
+			comment = String.IsNullOrEmpty(comment) ?
+				comment :
+				$"{comment}\n";
+
 			var fieldType = GetFieldType(field);
 			var fieldName = GetFieldName(field);
 
@@ -494,7 +596,7 @@ String.Empty;
 			var setter = GetGeneratedPropertySetterBody(field, typeDeclaration);
 
 			var property =
-$@"public {fieldType} {propertyName} 
+$@"{comment}public {fieldType} {propertyName} 
 {{
 get
 {{
@@ -516,23 +618,23 @@ set
 			var fieldName = GetFieldName(field);
 			var propertyChangedCall = GetPropertyChangedCall(field, false);
 			var propertyName = GetGeneratedPropertyName(field);
-			var authorityName = GetAuthorityPropertyName(typeDeclaration);
-			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInState: false);
-			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInState: false);
-			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInState: false);
+			var authorityAccess = GetAuthorityPropertyAccess(typeDeclaration, accessingInContext: false);
+			var typeIdAccess = GetTypeIdPropertyAccess(typeDeclaration, accessingInContext: false);
+			var sourceInstanceIdAccess = GetSourceInstanceIdPropertyAccess(typeDeclaration, accessingInContext: false);
+			var instanceIdAccess = GetInstanceIdPropertyAccess(typeDeclaration, accessingInContext: false);
 			var setDelegate = GetSetDelegate(field, fromWithinContext: false);
 
 			var body = _analyzer.HasAttribute(field.AttributeLists, field, SynchronizedAttributeIdentifier) ?
-$@"GetSynchronizationContext().Invoke(whenSynchronized: () =>
+$@"SynchronizationContext.Invoke(whenSynchronized: () =>
 {{{propertyChangingCall}
-{fieldName} = value;{propertyChangedCall}
-{authorityName}?.Push<{fieldType}>(typeId: {typeIdAccess}, 
+this.{fieldName} = value;{propertyChangedCall}
+{authorityAccess}?.Push<{fieldType}>(typeId: {typeIdAccess}, 
 propertyName: ""{propertyName}"", 
 sourceInstanceId: {sourceInstanceIdAccess}, 
 instanceId: {instanceIdAccess}, value);
 }}, whenDesynchronized: {setDelegate});" :
-$@"{propertyChangingCall}
-{fieldName} = value;{propertyChangedCall}";
+$@"{propertyChangingCall.Replace("\n", String.Empty)}
+this.{fieldName} = value;{propertyChangedCall}";
 
 			return body;
 		}
@@ -544,7 +646,7 @@ $@"{propertyChangingCall}
 				String.Empty;
 			var propertyChangingCall = GetPropertyChangingCall(field, fromWithinContext);
 			var instance = fromWithinContext ?
-				$"{CONTEXT_INSTANCE_NAME}." :
+				$"_instance." :
 				String.Empty;
 			var fieldName = GetFieldName(field);
 			var propertyChangedCall = GetPropertyChangedCall(field, fromWithinContext);
@@ -561,9 +663,9 @@ $@"({parameter}) =>
 		private String GetPropertyChangingCall(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{
 			var instance = fromWithinContext ?
-				$"{CONTEXT_INSTANCE_NAME}." :
+				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, GenerateEventsAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier) ?
 				$"\n{instance}OnPropertyChanging(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -572,9 +674,9 @@ $@"({parameter}) =>
 		private String GetPropertyChangedCall(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{
 			var instance = fromWithinContext ?
-				$"{CONTEXT_INSTANCE_NAME}." :
+				$"_instance." :
 				String.Empty;
-			var call = _analyzer.HasAttribute(field.AttributeLists, field, GenerateEventsAttributeIdentifier) ?
+			var call = _analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier) ?
 				$"\n{instance}OnPropertyChanged(propertyName: \"{GetGeneratedPropertyName(field)}\");" :
 				String.Empty;
 
@@ -585,7 +687,7 @@ $@"({parameter}) =>
 		{
 			_ = _analyzer.TryGetAttributes(field.AttributeLists, field, SynchronizedAttributeIdentifier, out var attributes);
 
-			var propertyNameArgument = attributes.Single()
+			var propertyNameArgument = attributes.SingleOrDefault()?
 				.ArgumentList?
 				.Arguments
 				.Single();
@@ -626,9 +728,9 @@ $@"({parameter}) =>
 				{
 					propertyName = getPrefixedName(SYNCHRONIZED_PROPERTY_PREFIX);
 				}
-				else if (_analyzer.HasAttribute(field.AttributeLists, field, GenerateEventsAttributeIdentifier))
+				else if (_analyzer.HasAttribute(field.AttributeLists, field, AutoNotifyAttributeIdentifier))
 				{
-					propertyName = getPrefixedName(EVENTFUL_PROPERTY_PREFIX);
+					propertyName = getPrefixedName(AUTO_NOTIFY_PROPERTY_PREFIX);
 				}
 				else
 				{
@@ -648,7 +750,7 @@ $@"({parameter}) =>
 
 		private IEnumerable<FieldDeclarationSyntax> GetFields(BaseTypeDeclarationSyntax typeDeclaration)
 		{
-			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, GenerateEventsAttributeIdentifier });
+			return _analyzer.GetFieldDeclarations(typeDeclaration, new[] { SynchronizedAttributeIdentifier, AutoNotifyAttributeIdentifier });
 		}
 		private String GetFieldName(FieldDeclarationSyntax field)
 		{
@@ -659,7 +761,7 @@ $@"({parameter}) =>
 			return _analyzer.GetTypeIdentifier(field.Declaration.Type).ToString();
 		}
 
-		private String GetAuthorityPropertyName(BaseTypeDeclarationSyntax typeDeclaration)
+		private String GetAuthorityPropertyAccess(BaseTypeDeclarationSyntax typeDeclaration, Boolean accessingInContext)
 		{
 			var identifier = _analyzer.GetTypeIdentifier(typeDeclaration);
 
@@ -674,7 +776,11 @@ $@"({parameter}) =>
 
 			var authorityName = authorityProperty.Identifier.Text;
 
-			return authorityName;
+			var access = accessingInContext ?
+				$"_instance.{authorityName}" :
+				authorityName;
+
+			return access;
 		}
 
 		private String GetClassTemplate(BaseTypeDeclarationSyntax typeDeclaration)

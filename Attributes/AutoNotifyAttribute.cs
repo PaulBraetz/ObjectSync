@@ -3,7 +3,7 @@
 namespace ObjectSync.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-    public sealed class GenerateEventsAttribute : Attribute
+    public sealed class AutoNotifyAttribute : Attribute
     {
     }
 }

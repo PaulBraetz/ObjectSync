@@ -4,27 +4,34 @@
 	{
 		static void Main(string[] args)
 		{
-			var person0 = new Person("Haris");
-			var person1 = new Person("Mike");
-			var person2 = new Person(person1.Id);
-			var person3 = new Person(person2.Id);
-			print();
-			person3.Name = "Jacob";
-			print();
-			person3.Desynchronize();
-			print();
-			person3.Name = "Trevor";
-			print();
-			person2.Name = "Steve";
-			print();
-			person2.Synchronize(person0.Id);
-			print();
-			person2.Name = "Francis";
-			print();
+			var p0 = new Person("Haris");
+			var p1 = new Person("Mike");
+			var p2 = new Person(p0);
+			var p3 = new Person(p0);
+			print($"var {nameof(p0)} = new Person(\"Haris\");\nvar {nameof(p1)} = new Person(\"Mike\");\nvar {nameof(p2)} = new Person(p1);\nvar {nameof(p3)} = new Person(p2);");
 
-			void print()
+			p3.Name = "Jacob";
+			print("p3.Name = \"Jacob\";");
+
+			p3.Desynchronize();
+			print("p3.Desynchronize();");
+
+			p3.Name = "Trevor";
+			print("p3.Name = \"Trevor\";");
+
+			p2.Name = "Steve";
+			print("p2.Name = \"Steve\";");
+
+			p2.SynchronizeTo(p0);
+			print("p2.SynchronizeTo(p0);");
+
+			p2.Name = "Jacob";
+			print("p2.Name = \"Jacob\";");
+
+			void print(String info)
 			{
-				Console.WriteLine(String.Join("\n", new Object[] {person0, person1, person2, person3, String.Empty }));
+				Console.WriteLine(info);
+				Console.WriteLine($"---------------\n{String.Join("\n", new Object[] { $"{nameof(p0)}: {p0}", $"{nameof(p1)}: {p1}", $"{nameof(p2)}: {p2}", $"{nameof(p3)}: {p3}", String.Empty })}");
 			}
 		}
 	}
