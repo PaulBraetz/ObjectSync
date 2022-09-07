@@ -76,7 +76,7 @@ namespace ObjectSync.Synchronization
 			}
 		}
 
-		private StaticSynchronizationAuthority() { }
+		protected StaticSynchronizationAuthority() { }
 
 		public static readonly StaticSynchronizationAuthority Instance = new();
 
