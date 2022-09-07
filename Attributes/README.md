@@ -252,4 +252,4 @@ partial void OnPropertyChanging(String propertyName)
 }
 ```
 
-Now, everytime a property annotated with the `ObserveAttribute` is set, you may react to the change in your partial method implementation.
+Now, everytime an observable property is set, you may react to the change in your partial method implementation.
