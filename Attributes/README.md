@@ -140,7 +140,7 @@ Whilst this lock guarantees the correct execution of the three methods, it is a 
 
 - - - -
 
-## Additional Instructions ##
+## Optional Attributes ##
 
 ### Provide A Type Id ###
 
