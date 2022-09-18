@@ -15,7 +15,7 @@
 		<Description>ObjectSync Source Generator</Description>
 		<Copyright>2022</Copyright>
 		<PackageTags>Rhomicro</PackageTags>
-		<Version>2.0.1</Version>
+		<Version>2.1.0</Version>
 		<PackageId>RhoMicro.ObjectSync.Generator</PackageId>
 		<AssemblyName>ObjectSync.Generator</AssemblyName>
 		<RootNamespace>ObjectSync.Generator</RootNamespace>
@@ -25,13 +25,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\Attributes\SynchronizationAuthorityAttribute.cs" Link="ObjectSync.Attributes\SynchronizationAuthorityAttribute.cs" />
-		<Compile Include="..\Attributes\InstanceIdAttribute.cs" Link="ObjectSync.Attributes\InstanceIdAttribute.cs" />
-		<Compile Include="..\Attributes\TypeIdAttribute.cs" Link="ObjectSync.Attributes\TypeIdAttribute.cs" />
-		<Compile Include="..\Attributes\SourceInstanceIdAttribute.cs" Link="ObjectSync.Attributes\SourceInstanceIdAttribute.cs" />
-		<Compile Include="..\Attributes\SynchronizedAttribute.cs" Link="ObjectSync.Attributes\SynchronizedAttribute.cs" />
-		<Compile Include="..\Attributes\ObservableAttribute.cs" Link="ObjectSync.Attributes\ObservableAttribute.cs" />
-		<Compile Include="..\Attributes\FastSynchronizedAttribute.cs" Link="ObjectSync.Attributes\FastSynchronizedAttribute.cs" />
+	  <Compile Remove="ObjectSync.Attributes\**" />
+	  <EmbeddedResource Remove="ObjectSync.Attributes\**" />
+	  <None Remove="ObjectSync.Attributes\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -48,7 +44,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="ObjectSync.Attributes\" />
+		<Folder Include="RhoMicro.CodeAnalysis\" />
 	</ItemGroup>
 
 </Project>

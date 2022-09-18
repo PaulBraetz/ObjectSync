@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace ObjectSync.Synchronization
+﻿namespace ObjectSync.Synchronization
 {
 	public interface ISynchronizationAuthority
 	{

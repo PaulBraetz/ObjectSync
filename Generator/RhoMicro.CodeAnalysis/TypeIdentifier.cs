@@ -22,27 +22,27 @@ namespace RhoMicro.CodeAnalysis
 		public static TypeIdentifier Create(Type type)
 		{
 			var name = TypeIdentifierName.Create();
-			Namespace @namespace = default;
+			var @namespace = Namespace.Create();
 
 			if (type.IsNested)
 			{
 				var parentType = type.Assembly.GetTypes().Single(t => t.GetNestedType(type.FullName) != null);
 				var parentTypeIdentifier = Create(parentType);
-				name = name.WithTypePart(parentTypeIdentifier.Name);
+				name = name.AppendTypePart(parentTypeIdentifier.Name);
 				@namespace = parentTypeIdentifier.Namespace;
 			}
 
-			name = name.WithNamePart(type.Name);
+			name = name.AppendNamePart(type.Name);
 
 			if (type.IsConstructedGenericType)
 			{
 				var genericArguments = type.GenericTypeArguments.Select(Create).ToArray();
-				name = name.WithGenericPart(genericArguments);
+				name = name.AppendGenericPart(genericArguments);
 			}
 
 			if (type.IsArray)
 			{
-				name = name.WithArrayPart();
+				name = name.AppendArrayPart();
 			}
 
 			if (@namespace == default)
@@ -51,7 +51,6 @@ namespace RhoMicro.CodeAnalysis
 			}
 
 			return Create(name, @namespace);
-
 		}
 		public static TypeIdentifier Create(ITypeSymbol symbol)
 		{

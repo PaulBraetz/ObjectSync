@@ -11,10 +11,10 @@
 
 	<PropertyGroup>
 		<Authors>Paul Brätz</Authors>
-		<Description>ObjectSync Attributes</Description>
+		<Description>This package is obsolete. It has been integrated into ObjectSync.Generator.</Description>
 		<Copyright>2022</Copyright>
 		<PackageTags>Rhomicro</PackageTags>
-		<Version>2.0.0</Version>
+		<Version>2.0.1</Version>
 		<PackageId>RhoMicro.ObjectSync.Attributes</PackageId>
 		<AssemblyName>ObjectSync.Attributes</AssemblyName>
 		<RootNamespace>ObjectSync.Attributes</RootNamespace>

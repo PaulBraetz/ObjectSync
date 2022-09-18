@@ -2,8 +2,9 @@
 
 namespace ObjectSync.Attributes
 {
-    [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-    public sealed class ObservableAttribute : Attribute
+	[Obsolete]
+	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
+	public sealed class ObservableAttribute : Attribute
 	{
 		public ObservableAttribute() : this(null)
 		{

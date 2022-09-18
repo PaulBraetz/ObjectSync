@@ -20,9 +20,10 @@ namespace ObjectSync.Attributes
 	/// <c>void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId)</c>
 	/// </para>
 	/// </summary>
+	[Obsolete]
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class SynchronizationAuthorityAttribute : Attribute
-    {
+	public sealed class SynchronizationAuthorityAttribute : Attribute
+	{
 
-    }
+	}
 }

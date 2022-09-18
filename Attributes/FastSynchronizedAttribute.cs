@@ -2,6 +2,7 @@
 
 namespace ObjectSync.Attributes
 {
+	[Obsolete]
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
 	public sealed class FastSynchronizedAttribute : Attribute
 	{

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace RhoMicro.CodeAnalysis
 {
@@ -15,21 +14,13 @@ namespace RhoMicro.CodeAnalysis
 			Parts = parts;
 		}
 
-		public static TypeIdentifierName CreateAttribute<T>()
-		{
-			return CreateAttribute(typeof(T));
-		}
-		public static TypeIdentifierName CreateAttribute(Type type)
-		{
-			return Create().WithNamePart(Regex.Replace(type.Name, @"Attribute$", String.Empty));
-		}
 		public static TypeIdentifierName Create<T>()
 		{
 			return Create(typeof(T));
 		}
 		public static TypeIdentifierName Create(Type type)
 		{
-			return Create().WithNamePart(type.Name);
+			return Create().AppendNamePart(type.Name);
 		}
 		public static TypeIdentifierName Create(ITypeSymbol symbol)
 		{
@@ -38,7 +29,7 @@ namespace RhoMicro.CodeAnalysis
 			if (symbol.ContainingType != null)
 			{
 				var containingType = Create(symbol.ContainingType);
-				result = result.WithTypePart(containingType);
+				result = result.AppendTypePart(containingType);
 			}
 
 			var flag = false;
@@ -48,7 +39,7 @@ namespace RhoMicro.CodeAnalysis
 				symbol = arraySymbol.ElementType;
 			}
 
-			result = result.WithNamePart(symbol.Name);
+			result = result.AppendNamePart(symbol.Name);
 
 			if (symbol is INamedTypeSymbol namedSymbol && namedSymbol.TypeArguments.Any())
 			{
@@ -60,7 +51,7 @@ namespace RhoMicro.CodeAnalysis
 					TypeIdentifier argument;
 					if (SymbolEqualityComparer.Default.Equals(typeArgument.ContainingType, namedSymbol))
 					{
-						argument = TypeIdentifier.Create(TypeIdentifierName.Create().WithNamePart(typeArgument.ToString()), Namespace.Create());
+						argument = TypeIdentifier.Create(TypeIdentifierName.Create().AppendNamePart(typeArgument.ToString()), Namespace.Create());
 					}
 					else
 					{
@@ -70,12 +61,12 @@ namespace RhoMicro.CodeAnalysis
 					arguments[i] = argument;
 				}
 
-				result = result.WithGenericPart(arguments);
+				result = result.AppendGenericPart(arguments);
 			}
 
 			if (flag)
 			{
-				result = result.WithArrayPart();
+				result = result.AppendArrayPart();
 			}
 
 			return result;
@@ -85,21 +76,21 @@ namespace RhoMicro.CodeAnalysis
 			return new TypeIdentifierName(ImmutableArray<IdentifierPart>.Empty);
 		}
 
-		public TypeIdentifierName WithTypePart(TypeIdentifierName type)
+		public TypeIdentifierName AppendTypePart(TypeIdentifierName type)
 		{
 			var parts = GetNextParts(IdentifierPart.PartKind.Name)
 				.AddRange(type.Parts);
 
 			return new TypeIdentifierName(parts);
 		}
-		public TypeIdentifierName WithNamePart(String name)
+		public TypeIdentifierName AppendNamePart(String name)
 		{
 			var parts = GetNextParts(IdentifierPart.PartKind.Name)
 				.Add(IdentifierPart.Name(name));
 
 			return new TypeIdentifierName(parts);
 		}
-		public TypeIdentifierName WithGenericPart(TypeIdentifier[] arguments)
+		public TypeIdentifierName AppendGenericPart(TypeIdentifier[] arguments)
 		{
 			var parts = GetNextParts(IdentifierPart.PartKind.GenericOpen)
 				.Add(IdentifierPart.GenericOpen());
@@ -128,7 +119,7 @@ namespace RhoMicro.CodeAnalysis
 
 			return new TypeIdentifierName(parts);
 		}
-		public TypeIdentifierName WithArrayPart()
+		public TypeIdentifierName AppendArrayPart()
 		{
 			var parts = GetNextParts(IdentifierPart.PartKind.Array).Add(IdentifierPart.Array());
 			return new TypeIdentifierName(parts);
@@ -162,7 +153,9 @@ namespace RhoMicro.CodeAnalysis
 
 		public Boolean Equals(TypeIdentifierName other)
 		{
-			return Parts.SequenceEqual(other.Parts);
+			return Parts.IsDefaultOrEmpty ?
+				other.Parts.IsDefaultOrEmpty :
+				Parts.SequenceEqual(other.Parts);
 		}
 
 		public override Int32 GetHashCode()

@@ -1,7 +1,5 @@
 ﻿using ObjectSync.Attributes;
 using ObjectSync.Synchronization;
-using System;
-using System.ComponentModel;
 
 namespace TestApp.Data.AnotherNamespace
 {
@@ -19,6 +17,8 @@ namespace TestApp.Data.AnotherNamespace
 
 		[Synchronized]
 		private String? _name;
+		[Synchronized]
+		private Byte _age;
 
 		[SynchronizationAuthority]
 		private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;

@@ -22,7 +22,7 @@ namespace RhoMicro.CodeAnalysis
 		public static Namespace Create(Type type)
 		{
 			var namespaceParts = type.Namespace.Split('.');
-			return Create().WithRange(namespaceParts);
+			return Create().AppendRange(namespaceParts);
 		}
 		public static Namespace Create(ISymbol symbol)
 		{
@@ -42,10 +42,10 @@ namespace RhoMicro.CodeAnalysis
 		}
 		public static Namespace Create()
 		{
-			return new Namespace(ImmutableArray<IdentifierPart>.Empty);
+			return new Namespace(ImmutableArray.Create<IdentifierPart>());
 		}
 
-		public Namespace With(String name)
+		public Namespace Append(String name)
 		{
 			if (String.IsNullOrWhiteSpace(name))
 			{
@@ -77,12 +77,12 @@ namespace RhoMicro.CodeAnalysis
 
 			return @namespace;
 		}
-		public Namespace WithRange(IEnumerable<String> names)
+		public Namespace AppendRange(IEnumerable<String> names)
 		{
 			var @namespace = this;
 			foreach (var name in names)
 			{
-				@namespace = @namespace.With(name);
+				@namespace = @namespace.Append(name);
 			}
 
 			return @namespace;
@@ -121,7 +121,9 @@ namespace RhoMicro.CodeAnalysis
 
 		public Boolean Equals(Namespace other)
 		{
-			return Parts.SequenceEqual(other.Parts);
+			return Parts.IsDefaultOrEmpty ?
+				other.Parts.IsDefaultOrEmpty :
+				Parts.SequenceEqual(other.Parts);
 		}
 
 		public override Int32 GetHashCode()
