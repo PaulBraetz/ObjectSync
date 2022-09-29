@@ -8,6 +8,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="RhoMicro.Fort" Version="1.1.1" />
+	  <PackageReference Include="RhoMicro.Scli" Version="1.1.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Synchronization\ObjectSync.Synchronization.csproj" />
 		<ProjectReference Include="..\Generator\ObjectSync.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

@@ -1,5 +1,5 @@
-﻿using ObjectSync.Attributes;
-using ObjectSync.Synchronization;
+﻿using ObjectSync.Synchronization;
+using ObjectSync.Attributes;
 
 namespace TestApp.Data.AnotherNamespace
 {

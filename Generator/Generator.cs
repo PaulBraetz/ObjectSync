@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-using static ObjectSync.Generator.GeneratedAttributes;
-
 namespace ObjectSync.Generator
 {
 	[Generator]
@@ -18,8 +16,6 @@ namespace ObjectSync.Generator
 			{
 				return;
 			}
-
-			var synchronizedAttributeSymbol = Synchronized.GeneratedType.ExtractSymbol(context.Compilation);
 
 			var sources = receiver.Fields
 				.Select(f =>
@@ -42,7 +38,14 @@ namespace ObjectSync.Generator
 
 		public void Initialize(GeneratorInitializationContext context)
 		{
-			var sources = new[] { TypeId.GeneratedType, SourceInstanceId.GeneratedType, InstanceId.GeneratedType, Synchronized.GeneratedType, SynchronizationAuthority.GeneratedType }
+			var sources = new[]
+			{
+				GeneratedAttributes.TypeId.GeneratedType,
+				GeneratedAttributes.SourceInstanceId.GeneratedType,
+				GeneratedAttributes.InstanceId.GeneratedType,
+				GeneratedAttributes.Synchronized.GeneratedType,
+				GeneratedAttributes.SynchronizationAuthority.GeneratedType
+			}
 			.Select(t => t.Source)
 			.ToArray();
 			context.RegisterForPostInitialization(c => c.AddSources(sources));
@@ -62,9 +65,11 @@ namespace ObjectSync.Generator
 						var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
 						var attributes = fieldSymbol.GetAttributes();
 
-						var names = attributes.Select(a => a.AttributeClass.ToDisplayString());
-						var match = names.Contains(Synchronized.GeneratedType.Identifier.ToString()) ||
-									names.Contains(SynchronizationAuthority.GeneratedType.Identifier.ToString());
+						var position = variable.SpanStart;
+
+						var names = attributes.Select(a => TypeIdentifier.Create(a.AttributeClass));
+						var match = names.Contains(GeneratedAttributes.Synchronized.GeneratedType.Identifier) ||
+									names.Contains(GeneratedAttributes.SynchronizationAuthority.GeneratedType.Identifier);
 
 						if (match)
 						{
