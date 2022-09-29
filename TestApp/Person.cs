@@ -3,6 +3,18 @@ using ObjectSync.Attributes;
 
 namespace TestApp.Data.AnotherNamespace
 {
+	public partial class PersonBase
+	{
+		[SynchronizationAuthority]
+		private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+
+		protected virtual event EventHandler? TestEvent;
+
+	}
+	public partial class PersonSub1:PersonBase
+	{
+		protected override event EventHandler? TestEvent;
+	}
 	public partial class Person
 	{
 		public Person(String name)
@@ -17,7 +29,7 @@ namespace TestApp.Data.AnotherNamespace
 
 		[Synchronized]
 		private String? _name;
-		[Synchronized]
+		[Synchronized(Visibility =SynchronizedAttribute.VisibilityModifier.Protected)]
 		private Byte _age;
 
 		[SynchronizationAuthority]

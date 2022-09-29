@@ -1,5 +1,6 @@
 ﻿namespace ObjectSync.Synchronization
 {
+	[Obsolete]
 	public interface ISynchronizationAuthority
 	{
 		TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId);

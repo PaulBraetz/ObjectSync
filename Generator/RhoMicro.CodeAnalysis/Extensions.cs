@@ -3,7 +3,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace RhoMicro.CodeAnalysis
 {
@@ -94,9 +96,8 @@ namespace RhoMicro.CodeAnalysis
 						{
 							return false;
 						}
-
-						_ = namedParameters.Remove(positionalParameter.Name);
-						_ = positionalParameters.Remove(position);
+						namedParameters.Remove(positionalParameter.Name);
+						positionalParameters.Remove(position);
 					}
 					else
 					{
@@ -105,9 +106,8 @@ namespace RhoMicro.CodeAnalysis
 						{
 							return false;
 						}
-
-						_ = namedParameters.Remove(argumentName);
-						_ = positionalParameters.Remove(positionalParameters.Single(kvp => kvp.Value.Name == argumentName).Key);
+						namedParameters.Remove(argumentName);
+						positionalParameters.Remove(positionalParameters.Single(kvp => kvp.Value.Name == argumentName).Key);
 					}
 				}
 
@@ -115,7 +115,6 @@ namespace RhoMicro.CodeAnalysis
 
 				return noneLeft;
 			}
-
 			Boolean matchesProperties()
 			{
 				var properties = constructor.DeclaringType.GetProperties()
@@ -135,11 +134,16 @@ namespace RhoMicro.CodeAnalysis
 
 			return foundAttributes;
 		}
+		public static IEnumerable<AttributeSyntax> OfAttributeClasses(this IEnumerable<AttributeListSyntax> attributeLists, SemanticModel semanticModel, params TypeIdentifier[] identifiers)
+		{
+			var requiredTypes = new HashSet<String>(identifiers.Select(i => i.ToString()));
+			var foundAttributes = attributeLists.SelectMany(al => al.Attributes).Where(a => requiredTypes.Contains(semanticModel.GetTypeInfo(a).Type?.ToDisplayString()));
+
+			return foundAttributes;
+		}
 		public static Boolean HasAttributes(this IEnumerable<AttributeListSyntax> attributeLists, SemanticModel semanticModel, params TypeIdentifier[] identifiers)
 		{
-			var attributes = attributeLists.SelectMany(al => al.Attributes);
-
-			var match = attributes.OfAttributeClasses(semanticModel, identifiers).Any();
+			var match = attributeLists.OfAttributeClasses(semanticModel, identifiers).Any();
 
 			return match;
 		}
@@ -171,17 +175,12 @@ namespace RhoMicro.CodeAnalysis
 		{
 			if (constant.HasValue)
 			{
-				if (constant.Value is T castValue)
+				try
 				{
-					value = castValue;
+					value = (T)constant.Value;
 					return true;
 				}
-
-				if (constant.Value == null)
-				{
-					value = default;
-					return true;
-				}
+				catch { }
 			}
 
 			value = default;
@@ -198,7 +197,7 @@ namespace RhoMicro.CodeAnalysis
 			var elements = constant.Value is Object[] objectArray ? objectArray : Array.Empty<Object>();
 			var tempValues = new T[elements.Length];
 
-			for (var i = 0; i < elements.Length; i++)
+			for (int i = 0; i < elements.Length; i++)
 			{
 				var element = elements[i];
 
@@ -268,7 +267,6 @@ namespace RhoMicro.CodeAnalysis
 					return result;
 				}
 			}
-
 			return new Optional<Object>();
 		}
 		#endregion
@@ -360,7 +358,6 @@ namespace RhoMicro.CodeAnalysis
 			{
 				return namedArgument.Value;
 			}
-
 			var positionalArgument = attribute.ConstructorArguments.Skip(position).FirstOrDefault();
 
 			return positionalArgument;

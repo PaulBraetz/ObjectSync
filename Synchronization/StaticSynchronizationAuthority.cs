@@ -2,6 +2,7 @@
 
 namespace ObjectSync.Synchronization
 {
+	[Obsolete]
 	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
 		private class PropertyStateBase

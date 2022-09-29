@@ -1,5 +1,6 @@
 ﻿namespace ObjectSync.Synchronization
 {
+	[Obsolete]
 	public readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;

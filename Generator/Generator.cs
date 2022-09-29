@@ -10,12 +10,37 @@ namespace ObjectSync.Generator
 	[Generator]
 	internal class Generator : ISourceGenerator
 	{
+		private static IEnumerable<GeneratedType> AttributeTypes = new[]
+			{
+				TypeId.GeneratedType,
+				SourceInstanceId.GeneratedType,
+				InstanceId.GeneratedType,
+				Synchronized.GeneratedType,
+				SynchronizationAuthority.GeneratedType,
+				SynchronizationContext.GeneratedType
+			}.ToImmutableList();
+		private static IEnumerable<TypeIdentifier> AttributeIdentifiers = AttributeTypes.Select(t => t.Identifier).ToImmutableList();
+		private static IEnumerable<GeneratedSource> AttributeSources = AttributeTypes.Select(t => t.Source).ToImmutableList();
+
+		private static IEnumerable<GeneratedType> SynchronizationClassesTypes = new[]
+			{
+				GeneratedSynchronizationClasses.ISynchronizationAuthority,
+				GeneratedSynchronizationClasses.ISynchronizationContext,
+				GeneratedSynchronizationClasses.StaticSynchronizationAuthority,
+				GeneratedSynchronizationClasses.SynchronizationAuthorityBase,
+				GeneratedSynchronizationClasses.SyncInfo
+			}.ToImmutableList();
+		private static IEnumerable<TypeIdentifier> SynchronizationClassesIdentifiers = SynchronizationClassesTypes.Select(t => t.Identifier).ToImmutableList();
+		private static IEnumerable<GeneratedSource> SynchronizationClassesSources = SynchronizationClassesTypes.Select(t => t.Source).ToImmutableList();
+
 		public void Execute(GeneratorExecutionContext context)
 		{
 			if (!(context.SyntaxContextReceiver is SyntaxReceiver receiver))
 			{
 				return;
 			}
+
+			var synchronizedAttributeSymbol = Synchronized.GeneratedType.ExtractSymbol(context.Compilation);
 
 			var sources = receiver.Fields
 				.Select(f =>
@@ -26,54 +51,45 @@ namespace ObjectSync.Generator
 						node = node.Parent;
 					}
 
-					return node;
-				})
-				.Where(t => t != null)
-				.OfType<BaseTypeDeclarationSyntax>()
-				.Distinct()
-				.Select(d => PartialTypeSource.GetSource(d, context.Compilation.GetSemanticModel(d.SyntaxTree)));
-
 			context.AddSources(sources);
 		}
 
 		public void Initialize(GeneratorInitializationContext context)
 		{
-			var sources = new[]
+			context.RegisterForPostInitialization(c =>
 			{
-				GeneratedAttributes.TypeId.GeneratedType,
-				GeneratedAttributes.SourceInstanceId.GeneratedType,
-				GeneratedAttributes.InstanceId.GeneratedType,
-				GeneratedAttributes.Synchronized.GeneratedType,
-				GeneratedAttributes.SynchronizationAuthority.GeneratedType
-			}
-			.Select(t => t.Source)
-			.ToArray();
-			context.RegisterForPostInitialization(c => c.AddSources(sources));
+				c.AddSources(AttributeSources);
+				c.AddSources(SynchronizationClassesSources);
+			});
 
 			context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
 		}
+
 		private sealed class SyntaxReceiver : ISyntaxContextReceiver
 		{
-			public List<FieldDeclarationSyntax> Fields { get; } = new List<FieldDeclarationSyntax>();
+			public HashSet<BaseTypeDeclarationSyntax> Types { get; } = new HashSet<BaseTypeDeclarationSyntax>();
 
 			public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
 			{
-				if (context.Node is FieldDeclarationSyntax field)
+				if (context.Node is BaseTypeDeclarationSyntax type && !Types.Contains(type))
 				{
-					foreach (var variable in field.Declaration.Variables)
+					var fields = type.ChildNodes().OfType<FieldDeclarationSyntax>();
+
+					foreach (var field in fields)
 					{
-						var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
-						var attributes = fieldSymbol.GetAttributes();
+						foreach (var variable in field.Declaration.Variables)
+						{
+							var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
+							var attributes = fieldSymbol.GetAttributes();
 
-						var position = variable.SpanStart;
-
-						var names = attributes.Select(a => TypeIdentifier.Create(a.AttributeClass));
-						var match = names.Contains(GeneratedAttributes.Synchronized.GeneratedType.Identifier) ||
-									names.Contains(GeneratedAttributes.SynchronizationAuthority.GeneratedType.Identifier);
+						var names = attributes.Select(a => a.AttributeClass.ToDisplayString());
+						var match = names.Contains(Synchronized.GeneratedType.Identifier.ToString()) ||
+									names.Contains(SynchronizationAuthority.GeneratedType.Identifier.ToString());
 
 						if (match)
 						{
-							Fields.Add(field);
+							Types.Add(type);
+							return;
 						}
 					}
 				}

@@ -9,10 +9,10 @@
 
 	<PropertyGroup>
 		<Authors>Paul Brätz</Authors>
-		<Description>Synchronization Authority Types for ObjectSync</Description>
+		<Description>This package is obsolete. It has been integrated into ObjectSync.Generator.</Description>
 		<Copyright>2022</Copyright>
 		<PackageTags>Rhomicro</PackageTags>
-		<Version>1.1.0</Version>
+		<Version>1.1.1</Version>
 		<PackageId>RhoMicro.ObjectSync.Synchronization</PackageId>
 		<AssemblyName>ObjectSync.Synchronization</AssemblyName>
 		<RootNamespace>ObjectSync.Synchronization</RootNamespace>

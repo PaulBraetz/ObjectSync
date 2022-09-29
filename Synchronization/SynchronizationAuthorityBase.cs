@@ -1,5 +1,6 @@
 ﻿namespace ObjectSync.Synchronization
 {
+	[Obsolete]
 	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);

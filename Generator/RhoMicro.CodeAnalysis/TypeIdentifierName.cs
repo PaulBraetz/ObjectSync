@@ -172,5 +172,10 @@ namespace RhoMicro.CodeAnalysis
 		{
 			return !(left == right);
 		}
+
+		public static implicit operator String(TypeIdentifierName name)
+		{
+			return name.ToString();
+		}
 	}
 }

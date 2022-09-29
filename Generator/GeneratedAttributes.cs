@@ -4,39 +4,69 @@ using System;
 
 namespace ObjectSync.Attributes
 {
-	[AttributeUsage(AttributeTargets.Property)]
-	public sealed class TypeIdAttribute : Attribute
+	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class TypeIdAttribute : Attribute
 	{
 
 	}
-	[AttributeUsage(AttributeTargets.Property)]
-	public sealed class InstanceIdAttribute : Attribute
+	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class InstanceIdAttribute : Attribute
 	{
 
 	}
-	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class SourceInstanceIdAttribute : Attribute
+	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class SynchronizationAuthorityAttribute : Attribute
+	internal sealed class SynchronizationAuthorityAttribute : Attribute
 	{
 
 	}
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class SynchronizedAttribute : Attribute
+	internal sealed class SynchronizedAttribute : Attribute
 	{
-		public SynchronizedAttribute(string propertyName = null, bool fast = false, bool observable = false)
+		public enum Accessibility
 		{
-			PropertyName = propertyName;
-			Fast = fast;
-			Observable = observable;
+			Public,
+			Protected,
+			Private
 		}
 
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
+		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Public;
+	}
+	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+	internal sealed class SynchronizationContextAttribute : Attribute
+	{
+		public enum Accessibility
+		{
+			Public,
+			Protected,
+			Private
+		}
+		public enum Modifier
+		{
+			None,
+			Overrides,
+			Virtual,
+			New
+		}
+		public enum TypeModifier
+		{
+			None,
+			Sealed
+		}
+
+		public Type BaseContextType { get; set; }
+		public Boolean IsSealed { get; set; }
+		public Accessibility TypeAccessibility { get; set; } = Accessibility.Protected;
+		public TypeModifier TypeModifier { get; set; } = Accessibility.Protected;
+		public Modifier PropertyModifier { get; set; }
+		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Protected;
 	}
 }
 
@@ -49,9 +79,9 @@ namespace ObjectSync.Generator
 
 namespace ObjectSync.Attributes
 {
-	[AttributeUsage(AttributeTargets.Property)]
-    public sealed class InstanceIdAttribute : Attribute
-    {
+	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class InstanceIdAttribute : Attribute
+	{
 
 	}
 }";
@@ -63,8 +93,8 @@ namespace ObjectSync.Attributes
 
 namespace ObjectSync.Attributes
 {
-    [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-    public sealed class SourceInstanceIdAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
@@ -96,12 +126,44 @@ namespace ObjectSync.Attributes
 	/// </para>
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public sealed class SynchronizationAuthorityAttribute : Attribute
-    {
+	internal sealed class SynchronizationAuthorityAttribute : Attribute
+	{
 
-    }
+	}
 }";
 		public static AttributeAnalysisUnit<SynchronizationAuthorityAttribute> SynchronizationAuthority { get; } = new AttributeAnalysisUnit<SynchronizationAuthorityAttribute>(SYNCHRONIZATION_AUTHORITY_SOURCE);
+		#endregion
+
+		#region SynchronizationContextAttribute
+		private const String SYNCHRONIZATION_CONTEXT_SOURCE = @"using System;
+
+namespace ObjectSync.Attributes
+{	
+	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+	internal sealed class SynchronizationContextAttribute : Attribute
+	{
+		public enum Accessibility
+		{
+			Public,
+			Protected,
+			Private
+		}
+		public enum Modifier
+		{
+			None,
+			Overrides,
+			Virtual,
+			New
+		}
+
+		public Type BaseContextType { get; set; }
+		public Boolean IsSealed { get; set; }
+		public Accessibility TypeAccessibility { get; set; } = Accessibility.Protected;
+		public Modifier PropertyModifier { get; set; }
+		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Protected;
+	}
+}";
+		public static AttributeAnalysisUnit<SynchronizationContextAttribute> SynchronizationContext { get; } = new AttributeAnalysisUnit<SynchronizationContextAttribute>(SYNCHRONIZATION_CONTEXT_SOURCE);
 		#endregion
 
 		#region Synchronized
@@ -110,18 +172,19 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-    public sealed class SynchronizedAttribute : Attribute
-    {
-		public SynchronizedAttribute(string propertyName = null, bool fast = false, bool observable = false)
+	internal sealed class SynchronizedAttribute : Attribute
+	{
+		public enum Accessibility
 		{
-			PropertyName = propertyName;
-			Fast = fast;
-			Observable = observable;
+			Public,
+			Protected,
+			Private
 		}
 
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
+		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Public;
 	}
 }";
 		public static AttributeAnalysisUnit<SynchronizedAttribute> Synchronized { get; } = new AttributeAnalysisUnit<SynchronizedAttribute>(SYNCHRONIZED_SOURCE);
@@ -132,8 +195,8 @@ namespace ObjectSync.Attributes
 
 namespace ObjectSync.Attributes
 {
-	[AttributeUsage(AttributeTargets.Property)]
-	public sealed class TypeIdAttribute : Attribute
+	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+	internal sealed class TypeIdAttribute : Attribute
 	{
 
 	}

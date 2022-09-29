@@ -99,5 +99,10 @@ namespace RhoMicro.CodeAnalysis
 		{
 			return !(left == right);
 		}
+
+		public static implicit operator String(TypeIdentifier identifier)
+		{
+			return identifier.ToString();
+		}
 	}
 }

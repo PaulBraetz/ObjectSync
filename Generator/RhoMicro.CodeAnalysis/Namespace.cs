@@ -140,5 +140,10 @@ namespace RhoMicro.CodeAnalysis
 		{
 			return !(left == right);
 		}
+
+		public static implicit operator String(Namespace @namespace)
+		{
+			return @namespace.ToString();
+		}
 	}
 }
