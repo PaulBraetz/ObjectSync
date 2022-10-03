@@ -41,7 +41,7 @@ namespace ObjectSync.Generator
 		private static TypeIdentifier InstanceIdAttributeIdentifier => GeneratedAttributes.InstanceId.GeneratedType.Identifier;
 		private static TypeIdentifier SourceInstanceIdAttributeIdentifier => GeneratedAttributes.SourceInstanceId.GeneratedType.Identifier;
 		private static TypeIdentifier SynchronizationAuthorityAttributeIdentifier => GeneratedAttributes.SynchronizationAuthority.GeneratedType.Identifier;
-		private static TypeIdentifier SynchronizationContextAttributeIdentifier => GeneratedAttributes.SynchronizationContext.GeneratedType.Identifier;
+		private static TypeIdentifier SynchronizationContextAttributeIdentifier => GeneratedAttributes.SynchronizationTarget.GeneratedType.Identifier;
 		private static TypeIdentifier SynchronizedAttributeIdentifier => GeneratedAttributes.Synchronized.GeneratedType.Identifier;
 		#endregion
 
@@ -146,7 +146,7 @@ $@"/// <summary>
 		private SynchronizationContextAttribute.Accessibility GetContextAccessibility()
 		{
 			var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-			var visibility = (match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) ?
+			var visibility = (match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) ?
 					contextData :
 					new SynchronizationContextAttribute())
 				.TypeAccessibility;
@@ -157,7 +157,7 @@ $@"/// <summary>
 		private String GetContextInheritance()
 		{
 			var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-			var baseType = match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) ?
+			var baseType = match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) ?
 					contextData.BaseContextType :
 					null;
 			var inheritance = baseType != null ?
@@ -173,7 +173,7 @@ $@"/// <summary>
 			if (!_contextIsSubClass.HasValue)
 			{
 				var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-				var isSubClass = match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) && contextData.BaseContextType != null;
+				var isSubClass = match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) && contextData.BaseContextType != null;
 
 				_contextIsSubClass = isSubClass;
 			}
@@ -187,7 +187,7 @@ $@"/// <summary>
 			if (!_contextIsSealed.HasValue)
 			{
 				var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-				var isSealed = match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) && contextData.IsSealed;
+				var isSealed = match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) && contextData.IsSealed;
 
 				_contextIsSealed = isSealed;
 			}
@@ -533,7 +533,7 @@ $@"/// <summary>
 		private SynchronizationContextAttribute.Accessibility GetContextPropertyAccessibility()
 		{
 			var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-			var accessibility = (match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) ?
+			var accessibility = (match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) ?
 					contextData :
 					new SynchronizationContextAttribute())
 				.PropertyAccessibility;
@@ -543,7 +543,7 @@ $@"/// <summary>
 		private SynchronizationContextAttribute.Modifier GetContextPropertyModifier()
 		{
 			var match = _typeDeclaration.AttributeLists.OfAttributeClasses(_semanticModel, SynchronizationContextAttributeIdentifier).FirstOrDefault();
-			var modifier = (match != null && GeneratedAttributes.SynchronizationContext.Factory.TryBuild(match, _semanticModel, out var contextData) ?
+			var modifier = (match != null && GeneratedAttributes.SynchronizationTarget.Factory.TryBuild(match, _semanticModel, out var contextData) ?
 					contextData :
 					new SynchronizationContextAttribute())
 				.PropertyModifier;
