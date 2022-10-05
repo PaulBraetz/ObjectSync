@@ -3,19 +3,19 @@ using ObjectSync.Attributes;
 
 namespace TestApp.Data.AnotherNamespace
 {
-	public partial class PersonBase
+	[SynchronizationTarget(ContextTypeAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Protected,
+						   ContextTypeIsSealed = false)]
+	public abstract partial class PersonBase
 	{
 		[SynchronizationAuthority]
-		private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+		protected abstract ISynchronizationAuthority Authority { get; }
 
-		protected virtual event EventHandler? TestEvent;
+		[Synchronized(PropertyAccessibility = Attributes.Accessibility.Private)]
+		private Byte _age;
+	}
 
-	}
-	public partial class PersonSub1:PersonBase
-	{
-		protected override event EventHandler? TestEvent;
-	}
-	public partial class Person
+	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext))]
+	internal sealed partial class Person : PersonBase
 	{
 		public Person(String name)
 		{
@@ -29,11 +29,11 @@ namespace TestApp.Data.AnotherNamespace
 
 		[Synchronized]
 		private String? _name;
-		[Synchronized(Visibility =SynchronizedAttribute.VisibilityModifier.Protected)]
+		[Synchronized(Visibility = SynchronizedAttribute.VisibilityModifier.Protected)]
 		private Byte _age;
 
 		[SynchronizationAuthority]
-		private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+		protected sealed override ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
 
 		public override String ToString()
 		{

@@ -1,22 +1,78 @@
 ﻿using ObjectSync.Attributes;
+using RhoMicro.CodeAnalysis;
 using RhoMicro.CodeAnalysis.Attributes;
 using System;
 
 namespace ObjectSync.Attributes
 {
+	public static class Attributes
+	{
+		/// <summary>
+		/// Enumeration for common accessibility combinations. Taken from https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.accessibility?view=roslyn-dotnet-4.3.0
+		/// </summary>
+		public enum Accessibility
+		{
+			/// <summary>
+			/// No accessibility specified.
+			/// </summary>
+			NotApplicable = 0,
+			Private = 1,
+			/// <summary>
+			/// Only accessible where both protected and internal members are accessible (more
+			/// restrictive than <see cref="Protected"/>, <see cref="Internal"/>
+			/// and <see cref="ProtectedOrInternal"/>).
+			/// </summary>
+			//ProtectedAndInternal = 2,
+			/// <summary>
+			/// Only accessible where both protected and friend members are accessible(more
+			/// restrictive than <see cref="Protected"/>, <see cref="Friend"/>
+			/// and <see cref="ProtectedOrFriend"/>).
+			/// </summary>
+			//ProtectedAndFriend = 2,
+			Protected = 3,
+			Internal = 4,
+			//Friend = 4,
+			/// <summary>
+			/// Accessible wherever either protected or internal members are accessible(less
+			/// restrictive than <see cref="Protected"/>, <see cref="Internal"/>
+			/// and <see cref="ProtectedAndInternal"/>).
+			/// </summary>
+			ProtectedOrInternal = 5,
+			/// <summary>
+			/// Accessible wherever either protected or internal members are accessible(less
+			/// restrictive than <see cref="Protected"/>, <see cref="Friend"/>
+			/// and <see cref="ProtectedAndFriend"/>).
+			/// </summary>
+			//ProtectedOrFriend = 5,
+			Public = 6
+		}
+
+		public enum Modifier
+		{
+			/// <summary>
+			/// No modifier specified.
+			/// </summary>
+			NotApplicable,
+			Sealed,
+			Override,
+			Virtual,
+			New
+		}
+	}
+
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class TypeIdAttribute : Attribute
+	public sealed class TypeIdAttribute : Attribute
 	{
 
 	}
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class InstanceIdAttribute : Attribute
+	public sealed class InstanceIdAttribute : Attribute
 	{
 
 	}
 
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class SourceInstanceIdAttribute : Attribute
+	public sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
@@ -40,48 +96,62 @@ namespace ObjectSync.Attributes
 	/// </para>
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class SynchronizationAuthorityAttribute : Attribute
+	public sealed class SynchronizationAuthorityAttribute : Attribute
 	{
 
 	}
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	internal sealed class SynchronizedAttribute : Attribute
+	public sealed class SynchronizedAttribute : Attribute
 	{
-		public enum Accessibility
-		{
-			Public,
-			Protected,
-			Private
-		}
-
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
-		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Public;
+		public Attributes.Accessibility PropertyAccessibility { get; set; } = Attributes.Accessibility.Public;
 	}
 	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
-	internal sealed class SynchronizationTargetAttribute : Attribute
+	public sealed class SynchronizationTargetAttribute : Attribute
 	{
-		public enum Accessibility
+		private String contextPropertyName = "SynchronizationContext";
+		private Attributes.Accessibility contextTypeConstructorAccessibility = Attributes.Accessibility.Public;
+
+		public String BaseContextTypeName { get; set; } = null;
+
+		public Attributes.Accessibility ContextTypeAccessibility { get; set; } = Attributes.Accessibility.Private;
+		public bool ContextTypeIsSealed { get; set; } = true;
+		public Attributes.Accessibility ContextTypeConstructorAccessibility
 		{
-			Public,
-			Protected,
-			Private
-		}
-		public enum Modifier
-		{
-			None,
-			Sealed,
-			Overrides,
-			Virtual,
-			New
+			get => contextTypeConstructorAccessibility;
+			set
+			{
+				if (value == Attributes.Accessibility.Private)
+				{
+					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Private}.");
+				}
+
+				if (ContextTypeIsSealed && value == Attributes.Accessibility.Protected)
+				{
+					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Protected} while {ContextTypeIsSealed} is {true}.");
+				}
+
+				contextTypeConstructorAccessibility = value;
+			}
 		}
 
-		public Type[] ContextBases { get; set; }
-		public Accessibility ContextTypeAccessibility { get; set; } = Accessibility.Private;
-		public bool ContextTypeIsSealed { get; set; }
-		public Modifier ContextPropertyModifier { get; set; }
-		public Accessibility ContextPropertyAccessibility { get; set; } = Accessibility.Protected;
+		public String ContextPropertyName
+		{
+			get => contextPropertyName;
+			set
+			{
+				if (String.IsNullOrEmpty(value))
+				{
+					throw new ArgumentException($"{nameof(ContextPropertyName)} cannot be null or empty.");
+				}
+
+				contextPropertyName = value;
+			}
+		}
+		public Attributes.Modifier ContextPropertyModifier { get; set; } = Attributes.Modifier.NotApplicable;
+		public Attributes.Accessibility ContextPropertyAccessibility { get; set; } = Attributes.Accessibility.Protected;
 	}
 }
 
@@ -95,7 +165,7 @@ namespace ObjectSync.Generator
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class InstanceIdAttribute : Attribute
+	public sealed class InstanceIdAttribute : Attribute
 	{
 
 	}
@@ -127,7 +197,7 @@ namespace ObjectSync.Attributes
 	/// </para>
 	/// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class SourceInstanceIdAttribute : Attribute
+	public sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
@@ -141,7 +211,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class SynchronizationAuthorityAttribute : Attribute
+	public sealed class SynchronizationAuthorityAttribute : Attribute
 	{
 
 	}
@@ -149,37 +219,58 @@ namespace ObjectSync.Attributes
 		public static AttributeAnalysisUnit<SynchronizationAuthorityAttribute> SynchronizationAuthority { get; } = new AttributeAnalysisUnit<SynchronizationAuthorityAttribute>(SYNCHRONIZATION_AUTHORITY_SOURCE);
 		#endregion
 
-		#region SynchronizationContextAttribute
-		private const String SYNCHRONIZATION_CONTEXT_SOURCE = @"using System;
+		#region SynchronizationTargetAttribute
+		private const String SYNCHRONIZATION_TARGET_SOURCE = @"using System;
 
 namespace ObjectSync.Attributes
 {	
 	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
-	internal sealed class SynchronizationTargetAttribute : Attribute
+	public sealed class SynchronizationTargetAttribute : Attribute
 	{
-		public enum Accessibility
+		private String contextPropertyName = ""SynchronizationContext"";
+		private Attributes.Accessibility contextTypeConstructorAccessibility = Attributes.Accessibility.Public;
+
+		public String BaseContextTypeName { get; set; } = null;
+
+		public Attributes.Accessibility ContextTypeAccessibility { get; set; } = Attributes.Accessibility.Private;
+		public bool ContextTypeIsSealed { get; set; } = true;
+		public Attributes.Accessibility ContextTypeConstructorAccessibility
 		{
-			Public,
-			Protected,
-			Private
-		}
-		public enum Modifier
-		{
-			None,
-			Sealed,
-			Overrides,
-			Virtual,
-			New
+			get => contextTypeConstructorAccessibility;
+			set
+			{
+				if (value == Attributes.Accessibility.Private)
+				{
+					throw new ArgumentException($""{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Private}."");
+				}
+
+				if (ContextTypeIsSealed && value == Attributes.Accessibility.Protected)
+				{
+					throw new ArgumentException($""{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Protected} while {ContextTypeIsSealed} is {true}."");
+				}
+
+				contextTypeConstructorAccessibility = value;
+			}
 		}
 
-		public Type[] ContextBases { get; set; }
-		public Accessibility ContextTypeAccessibility { get; set; } = Accessibility.Private;
-		public bool ContextTypeIsSealed { get; set; }
-		public Modifier ContextPropertyModifier { get; set; }
-		public Accessibility ContextPropertyAccessibility { get; set; } = Accessibility.Protected;
+		public String ContextPropertyName
+		{
+			get => contextPropertyName;
+			set
+			{
+				if (String.IsNullOrEmpty(value))
+				{
+					throw new ArgumentException($""{nameof(ContextPropertyName)} cannot be null or empty."");
+				}
+
+				contextPropertyName = value;
+			}
+		}
+		public Attributes.Modifier ContextPropertyModifier { get; set; } = Attributes.Modifier.NotApplicable;
+		public Attributes.Accessibility ContextPropertyAccessibility { get; set; } = Attributes.Accessibility.Protected;
 	}
 }";
-		public static AttributeAnalysisUnit<SynchronizationTargetAttribute> SynchronizationTarget { get; } = new AttributeAnalysisUnit<SynchronizationTargetAttribute>(SYNCHRONIZATION_CONTEXT_SOURCE);
+		public static AttributeAnalysisUnit<SynchronizationTargetAttribute> SynchronizationTarget { get; } = new AttributeAnalysisUnit<SynchronizationTargetAttribute>(SYNCHRONIZATION_TARGET_SOURCE);
 		#endregion
 
 		#region Synchronized
@@ -188,19 +279,12 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	internal sealed class SynchronizedAttribute : Attribute
+	public sealed class SynchronizedAttribute : Attribute
 	{
-		public enum Accessibility
-		{
-			Public,
-			Protected,
-			Private
-		}
-
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
-		public Accessibility PropertyAccessibility { get; set; } = Accessibility.Public;
+		public Attributes.Accessibility PropertyAccessibility { get; set; } = Attributes.Accessibility.Public;
 	}
 }";
 		public static AttributeAnalysisUnit<SynchronizedAttribute> Synchronized { get; } = new AttributeAnalysisUnit<SynchronizedAttribute>(SYNCHRONIZED_SOURCE);
@@ -212,12 +296,75 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	internal sealed class TypeIdAttribute : Attribute
+	public sealed class TypeIdAttribute : Attribute
 	{
 
 	}
 }";
 		public static AttributeAnalysisUnit<TypeIdAttribute> TypeId { get; } = new AttributeAnalysisUnit<TypeIdAttribute>(TYPE_ID_SOURCE);
+		#endregion
+
+		#region Attributes
+		private const String Attributes_SOURCE = @"using System;
+
+namespace ObjectSync.Attributes
+{
+	public static class Attributes
+	{
+		/// <summary>
+		/// Enumeration for common accessibility combinations. Taken from https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.accessibility?view=roslyn-dotnet-4.3.0
+		/// </summary>
+		public enum Accessibility
+		{
+			/// <summary>
+			/// No accessibility specified.
+			/// </summary>
+			NotApplicable = 0,
+			Private = 1,
+			/// <summary>
+			/// Only accessible where both protected and internal members are accessible (more
+			/// restrictive than <see cref=""Protected""/>, <see cref=""Internal""/>
+			/// and <see cref=""ProtectedOrInternal""/>).
+			/// </summary>
+			//ProtectedAndInternal = 2,
+			/// <summary>
+			/// Only accessible where both protected and friend members are accessible(more
+			/// restrictive than <see cref=""Protected""/>, <see cref=""Friend""/>
+			/// and <see cref=""ProtectedOrFriend""/>).
+			/// </summary>
+			//ProtectedAndFriend = 2,
+			Protected = 3,
+			Internal = 4,
+			//Friend = 4,
+			/// <summary>
+			/// Accessible wherever either protected or internal members are accessible(less
+			/// restrictive than <see cref=""Protected""/>, <see cref=""Internal""/>
+			/// and <see cref=""ProtectedAndInternal""/>).
+			/// </summary>
+			ProtectedOrInternal = 5,
+			/// <summary>
+			/// Accessible wherever either protected or internal members are accessible(less
+			/// restrictive than <see cref=""Protected""/>, <see cref=""Friend""/>
+			/// and <see cref=""ProtectedAndFriend""/>).
+			/// </summary>
+			//ProtectedOrFriend = 5,
+			Public = 6
+		}
+
+		public enum Modifier
+		{
+			None,
+			Sealed,
+			Overrides,
+			Virtual,
+			New
+		}
+	}
+}";
+		public static GeneratedType Attributes = new GeneratedType(identifier: TypeIdentifier.Create(
+																					TypeIdentifierName.Create().AppendNamePart(nameof(ObjectSync.Attributes.Attributes)),
+																					SynchronizationTarget.GeneratedType.Identifier.Namespace),
+																	source: Attributes_SOURCE);
 		#endregion
 	}
 }

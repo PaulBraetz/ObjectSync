@@ -13,7 +13,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Synchronization\ObjectSync.Synchronization.csproj" />
 		<ProjectReference Include="..\Generator\ObjectSync.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<PropertyGroup>

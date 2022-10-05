@@ -9,17 +9,17 @@ using ObjectSync.Synchronization;
 
 namespace ObjectSync.Synchronization
 {
-	internal interface ISynchronizationContext
+	public abstract class SynchronizationContextBase
 	{
 	}
-	internal interface ISynchronizationAuthority
+	public interface ISynchronizationAuthority
 	{
 		TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId);
 		void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value);
 		void Subscribe<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
 		void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId);
 	}
-	internal class StaticSynchronizationAuthority : SynchronizationAuthorityBase
+	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
 		private class PropertyStateBase
 		{
@@ -140,7 +140,7 @@ namespace ObjectSync.Synchronization
 			return value;
 		}
 	}
-	internal abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
+	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);
 		public TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId)
@@ -166,7 +166,7 @@ namespace ObjectSync.Synchronization
 			Unsubscribe(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId));
 		}
 	}
-	internal readonly struct SyncInfo : IEquatable<SyncInfo>
+	public readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;
 		public readonly String PropertyName;
@@ -221,7 +221,7 @@ namespace ObjectSync.Generator
 	internal static class GeneratedSynchronizationClasses
 	{
 		#region ISynchronizationContext
-		private const string ISynchronizationContext_SOURCE =
+		private const string SynchronizationContextBase_SOURCE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -231,11 +231,11 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	internal interface ISynchronizationContext
+	public abstract class SynchronizationContextBase
 	{
 	}
 }";
-		public static GeneratedType ISynchronizationContext { get; } = new GeneratedType(TypeIdentifier.Create<ISynchronizationContext>(), ISynchronizationContext_SOURCE);
+		public static GeneratedType SynchronizationContextBase { get; } = new GeneratedType(TypeIdentifier.Create<SynchronizationContextBase>(), SynchronizationContextBase_SOURCE);
 		#endregion
 
 		#region ISynchronizationAuthority
@@ -249,7 +249,7 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	internal interface ISynchronizationAuthority
+	public interface ISynchronizationAuthority
 	{
 		TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId);
 		void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value);
@@ -271,7 +271,7 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	internal class StaticSynchronizationAuthority : SynchronizationAuthorityBase
+	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
 		private class PropertyStateBase
 		{
@@ -407,7 +407,7 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	internal abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
+	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);
 		public TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId)
@@ -448,7 +448,7 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	internal readonly struct SyncInfo : IEquatable<SyncInfo>
+	public readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;
 		public readonly String PropertyName;

@@ -4,7 +4,9 @@ using RhoMicro.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Xml.Linq;
 
 namespace ObjectSync.Generator
@@ -19,14 +21,15 @@ namespace ObjectSync.Generator
 				GeneratedAttributes.InstanceId.GeneratedType,
 				GeneratedAttributes.Synchronized.GeneratedType,
 				GeneratedAttributes.SynchronizationAuthority.GeneratedType,
-				GeneratedAttributes.SynchronizationTarget.GeneratedType
+				GeneratedAttributes.SynchronizationTarget.GeneratedType,
+				GeneratedAttributes.Attributes
 			}.ToImmutableList();
 		private static IEnumerable<GeneratedSource> AttributeSources = AttributeTypes.Select(t => t.Source).ToImmutableList();
 
 		private static IEnumerable<GeneratedType> SynchronizationClassesTypes = new[]
 			{
 				GeneratedSynchronizationClasses.ISynchronizationAuthority,
-				GeneratedSynchronizationClasses.ISynchronizationContext,
+				GeneratedSynchronizationClasses.SynchronizationContextBase,
 				GeneratedSynchronizationClasses.StaticSynchronizationAuthority,
 				GeneratedSynchronizationClasses.SynchronizationAuthorityBase,
 				GeneratedSynchronizationClasses.SyncInfo
@@ -40,7 +43,10 @@ namespace ObjectSync.Generator
 				return;
 			}
 
-			var sources = receiver.Types.Select(t => PartialTypeSource.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
+			var sources = receiver.Types.Select(t => SynchronizedTypeSourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
+
+			Console.WriteLine(String.Join("\n\n", sources));
+			Console.ReadLine();
 
 			context.AddSources(sources);
 		}
@@ -64,13 +70,13 @@ namespace ObjectSync.Generator
 			{
 				if (context.Node is BaseTypeDeclarationSyntax ||
 					(context.Node is FieldDeclarationSyntax &&
-					context.SemanticModel.GetDeclaredSymbol(context.Node).HasAttributes(GeneratedAttributes.Synchronized.GeneratedType.Identifier)) ||
+					(context.SemanticModel.GetDeclaredSymbol(context.Node)?.HasAttributes(GeneratedAttributes.Synchronized.GeneratedType.Identifier) ?? false)) ||
 					(context.Node is PropertyDeclarationSyntax &&
-					context.SemanticModel.GetDeclaredSymbol(context.Node)
+					(context.SemanticModel.GetDeclaredSymbol(context.Node)?
 										 .HasAttributes(GeneratedAttributes.InstanceId.GeneratedType.Identifier,
 														GeneratedAttributes.SourceInstanceId.GeneratedType.Identifier,
 														GeneratedAttributes.TypeId.GeneratedType.Identifier,
-														GeneratedAttributes.SynchronizationAuthority.GeneratedType.Identifier)))
+														GeneratedAttributes.SynchronizationAuthority.GeneratedType.Identifier) ?? false)))
 				{
 					var node = context.Node;
 
@@ -80,7 +86,8 @@ namespace ObjectSync.Generator
 						{
 							if (!Types.Contains(declaration))
 							{
-								var match = context.SemanticModel.GetDeclaredSymbol(declaration).HasAttributes(GeneratedAttributes.SynchronizationTarget.GeneratedType.Identifier);
+								var match = context.SemanticModel.GetDeclaredSymbol(declaration)?
+									.HasAttributes(GeneratedAttributes.SynchronizationTarget.GeneratedType.Identifier) ?? false;
 
 								if (match)
 								{
