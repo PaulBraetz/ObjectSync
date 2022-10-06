@@ -8,10 +8,13 @@ namespace TestApp.Data.AnotherNamespace
 	public abstract partial class PersonBase
 	{
 		[SynchronizationAuthority]
-		protected abstract ISynchronizationAuthority Authority { get; }
+		protected ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
 
 		[Synchronized(PropertyAccessibility = Attributes.Accessibility.Private)]
 		private Byte _age;
+
+		[InstanceId]
+		private String InstanceId { get; } = Guid.NewGuid().ToString();
 	}
 
 	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext))]
@@ -29,11 +32,6 @@ namespace TestApp.Data.AnotherNamespace
 
 		[Synchronized]
 		private String? _name;
-		[Synchronized(Visibility = SynchronizedAttribute.VisibilityModifier.Protected)]
-		private Byte _age;
-
-		[SynchronizationAuthority]
-		protected sealed override ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
 
 		public override String ToString()
 		{

@@ -42,6 +42,30 @@ namespace ObjectSync.Generator
 /// Indicates wether the instance is synchronized.
 /// </summary>";
 
+		private const String CONTEXT_AUTHORITY_PROPERTY_NAME = "Authority";
+		private const String CONTEXT_AUTHORITY_PROPERTY_SUMMARY =
+@"/// <summary>
+/// Provides the synchronization authority for this context.
+/// </summary>";
+
+		private const String CONTEXT_TYPE_ID_PROPERTY_NAME = "TypeId";
+		private const String CONTEXT_TYPE_ID_PROPERTY_SUMMARY =
+@"/// <summary>
+/// Provides the type id for the instance.
+/// </summary>";
+
+		private const String CONTEXT_SOURCE_INSTANCE_ID_PROPERTY_NAME = "SourceInstanceId";
+		private const String CONTEXT_SOURCE_INSTANCE_ID_PROPERTY_SUMMARY =
+@"/// <summary>
+/// Provides the instance id for the instance.
+/// </summary>";
+
+		private const String CONTEXT_INSTANCE_ID_PROPERTY_NAME = "InstanceId";
+		private const String CONTEXT_INSTANCE_ID_PROPERTY_SUMMARY =
+@"/// <summary>
+/// Provides the source instance id for the instance.
+/// </summary>";
+
 		private const String CONTEXT_SYNC_ROOT_PROPERTY_NAME = "SyncRoot";
 		private const String CONTEXT_SYNC_ROOT_PROPERTY_SUMMARY = @"/// <summary>
 /// Sync object for synchronizing access to synchronization logic.
@@ -140,6 +164,8 @@ namespace ObjectSync.Generator
 		private static IAttributeFactory<SynchronizationAuthorityAttribute> SynchronizationAuthorityAttributeFactory => GeneratedAttributes.SynchronizationAuthority.Factory;
 		private static IAttributeFactory<SynchronizationTargetAttribute> SynchronizationTargetAttributeFactory => GeneratedAttributes.SynchronizationTarget.Factory;
 		private static IAttributeFactory<SynchronizedAttribute> SynchronizedAttributeFactory => GeneratedAttributes.Synchronized.Factory;
+
+		private static TypeIdentifier ISynchronizationAuthorityIdentifier => GeneratedSynchronizationClasses.ISynchronizationAuthority.Identifier;
 		#endregion
 
 		#region Fields
@@ -150,7 +176,6 @@ namespace ObjectSync.Generator
 		private NamespaceDeclarationSyntax _namespaceDeclaration;
 		private NameSyntax _namespaceName;
 		private BaseTypeDeclarationSyntax _generatedTypeDeclaration;
-		private MemberDeclarationSyntax[] _generatedTypeMembers;
 		private MemberDeclarationSyntax _contextTypeDeclaration;
 		private String _contextTypeName;
 		private Optional<SyntaxToken[]> _contextTypeModifiers;
@@ -160,11 +185,14 @@ namespace ObjectSync.Generator
 		private ExpressionSyntax _contextInstancePropertyAccess;
 		private StatementSyntax[] _revertableUnsubscriptions;
 		private StatementSyntax[] _revertableSubscriptions;
-		private PropertyDeclarationSyntax _authorityProperty;
+		private PropertyDeclarationSyntax _synchronizedTypeAuthorityProperty;
 		private FieldDeclarationSyntax[] _synchronizedFields;
 		private PropertyDeclarationSyntax[] _properties;
 		private StatementSyntax[] _pulls;
 		private StatementSyntax[] _pullAssignments;
+		private PropertyDeclarationSyntax _synchronizedTypeTypeIdProperty;
+		private PropertyDeclarationSyntax _synchronizedTypeInstanceIdProperty;
+		private PropertyDeclarationSyntax _synchronizedTypeSourceInstanceIdProperty;
 		public void Clear()
 		{
 			_synchronizedTypeDeclaration = default;
@@ -173,7 +201,6 @@ namespace ObjectSync.Generator
 			_namespaceDeclaration = default;
 			_namespaceName = default;
 			_generatedTypeDeclaration = default;
-			_generatedTypeMembers = default;
 			_contextTypeDeclaration = default;
 			_contextTypeName = default;
 			_contextTypeModifiers = default;
@@ -183,10 +210,13 @@ namespace ObjectSync.Generator
 			_contextType = default;
 			_revertableUnsubscriptions = default;
 			_revertableSubscriptions = default;
-			_authorityProperty = default;
+			_synchronizedTypeAuthorityProperty = default;
 			_properties = default;
 			_pulls = default;
 			_pullAssignments = default;
+			_synchronizedTypeTypeIdProperty = null;
+			_synchronizedTypeSourceInstanceIdProperty = null;
+			_synchronizedTypeInstanceIdProperty = null;
 		}
 
 		#endregion
@@ -251,30 +281,88 @@ namespace ObjectSync.Generator
 				return _contextInstancePropertyAccess;
 			}
 		}
-		private PropertyDeclarationSyntax AuthorityProperty
+		private PropertyDeclarationSyntax SynchronizedTypeAuthorityProperty
 		{
 			get
 			{
-				if (_authorityProperty == null)
+				if (_synchronizedTypeAuthorityProperty == null)
 				{
 					var authorityProperties = Properties
 						.Where(p => p.AttributeLists.HasAttributes(_semanticModel, SynchronizationAuthorityAttributeIdentifier))
 						.ToArray();
-
-					if (authorityProperties.Length == 0)
-					{
-						throw new Exception($"{SynchronizedTypeIdentifier} does not provide a synchronization authority.");
-					}
 
 					if (authorityProperties.Length > 1)
 					{
 						throw new Exception($"{SynchronizedTypeIdentifier} cannot provide multiple synchronization authorities.");
 					}
 
-					_authorityProperty = authorityProperties[0];
+					_synchronizedTypeAuthorityProperty = authorityProperties.SingleOrDefault();
 				}
 
-				return _authorityProperty;
+				return _synchronizedTypeAuthorityProperty;
+			}
+		}
+		private PropertyDeclarationSyntax SynchronizedTypeTypeIdProperty
+		{
+			get
+			{
+				if (_synchronizedTypeTypeIdProperty == null)
+				{
+					var typeIdProperties = Properties
+						.Where(p => p.AttributeLists.HasAttributes(_semanticModel, TypeIdAttributeIdentifier))
+						.ToArray();
+
+					if (typeIdProperties.Length > 1)
+					{
+						throw new Exception($"{SynchronizedTypeIdentifier} cannot provide multiple type ids.");
+					}
+
+					_synchronizedTypeTypeIdProperty = typeIdProperties.SingleOrDefault();
+				}
+
+				return _synchronizedTypeTypeIdProperty;
+			}
+		}
+		private PropertyDeclarationSyntax SynchronizedTypeSourceInstanceIdProperty
+		{
+			get
+			{
+				if (_synchronizedTypeSourceInstanceIdProperty == null)
+				{
+					var sourceInstanceIdProperties = Properties
+						.Where(p => p.AttributeLists.HasAttributes(_semanticModel, SourceInstanceIdAttributeIdentifier))
+						.ToArray();
+
+					if (sourceInstanceIdProperties.Length > 1)
+					{
+						throw new Exception($"{SynchronizedTypeIdentifier} cannot provide multiple source instance ids.");
+					}
+
+					_synchronizedTypeSourceInstanceIdProperty = sourceInstanceIdProperties.SingleOrDefault();
+				}
+
+				return _synchronizedTypeSourceInstanceIdProperty;
+			}
+		}
+		private PropertyDeclarationSyntax SynchronizedTypeInstanceIdProperty
+		{
+			get
+			{
+				if (_synchronizedTypeInstanceIdProperty == null)
+				{
+					var instanceIdProperties = Properties
+						.Where(p => p.AttributeLists.HasAttributes(_semanticModel, InstanceIdAttributeIdentifier))
+						.ToArray();
+
+					if (instanceIdProperties.Length > 1)
+					{
+						throw new Exception($"{SynchronizedTypeIdentifier} cannot provide multiple instance ids.");
+					}
+
+					_synchronizedTypeInstanceIdProperty = instanceIdProperties.SingleOrDefault();
+				}
+
+				return _synchronizedTypeInstanceIdProperty;
 			}
 		}
 		private FieldDeclarationSyntax[] SynchronizedFields
@@ -401,17 +489,14 @@ An error occured while generating this source file for {SynchronizedTypeIdentifi
 		}
 		private MemberDeclarationSyntax[] GetGeneratedTypeMembers()
 		{
-			if (_generatedTypeMembers == null)
-			{
-				var contextDeclaration = GetContextDeclaration();
-
-				_generatedTypeMembers = new MemberDeclarationSyntax[]
+			var members = new MemberDeclarationSyntax[]
 				{
-					contextDeclaration
-				}.Where(m => m != null).ToArray();
-			}
+					GetContextDeclaration()
+				}.Concat(GetIdDeclarations())
+				.Where(m => m != null)
+				.ToArray();
 
-			return _generatedTypeMembers;
+			return members;
 		}
 		private BaseTypeDeclarationSyntax GetGeneratedTypeDeclaration()
 		{
@@ -479,18 +564,22 @@ An error occured while generating this source file for {SynchronizedTypeIdentifi
 		{
 			var members = new MemberDeclarationSyntax[]
 			{
-				GetContextEvent(),
-				GetContextIsSynchronizedField(),
-				GetContextIsSynchronizedProperty(),
-				GetContextInstanceProperty(),
-				GetContextSyncRootProperty(),
-				GetContextConstructor(),
-				GetContextInvokeMethod(),
-				GetContextDesynchronizeMethod(),
-				GetContextDesynchronizeUnlockedMethod(),
-				GetContextSynchronizeMethod(),
-				GetContextSynchronizeUnlockedMethod(),
-				GetContextResynchronizeMethod(),
+				//GetContextEvent(),
+				//GetContextIsSynchronizedField(),
+				//GetContextIsSynchronizedProperty(),
+				//GetContextInstanceProperty(),
+				//GetContextSyncRootProperty(),
+				//GetContextConstructor(),
+				//GetContextInvokeMethod(),
+				//GetContextDesynchronizeMethod(),
+				//GetContextDesynchronizeUnlockedMethod(),
+				//GetContextSynchronizeMethod(),
+				//GetContextSynchronizeUnlockedMethod(),
+				//GetContextResynchronizeMethod(),
+				GetContextAuthorityProperty(),
+				GetContextTypeIdProperty(),
+				GetContextSourceInstanceIdProperty(),
+				GetContextInstanceIdProperty(),
 				
 				//GetContextDesynchronizeInvokeSynchronizeMethod()
 			}
@@ -704,12 +793,12 @@ $@"if (this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 	{{
 		if (this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 		{{
-			var authority = {{authorityAccess}};
+			var authority = {GetAuthorityPropertyAccess(true)};
 			if (authority != null)
 			{{
-				var typeId = {{typeIdAccess}};
-				var sourceInstanceId = {{sourceInstanceIdAccess}};
-				var instanceId = {{instanceIdAccess}};
+				var typeId = {GetTypeIdPropertyAccess(true)};
+				var sourceInstanceId = {GetSourceInstanceIdPropertyAccess(true)};
+				var instanceId = {GetInstanceIdPropertyAccess(true)};
 
 				this.{CONTEXT_DESYNCHRONIZE_UNLOCKED_METHOD_NAME}(typeId, sourceInstanceId, instanceId, null);
 			}}
@@ -744,7 +833,7 @@ $@"if (this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 					.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<String>())),
 					SyntaxFactory.Parameter(
 						SyntaxFactory.Identifier(CONTEXT_METHOD_AUTHORITY_LOCAL_NAME))
-					.WithType(AuthorityProperty.Type),
+					.WithType(SynchronizedTypeAuthorityProperty.Type),
 					SyntaxFactory.Parameter(
 						SyntaxFactory.Identifier(CONTEXT_METHOD_ON_REVERT_LOCAL_NAME))
 					.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())))
@@ -836,7 +925,7 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 					.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<String>())),
 					SyntaxFactory.Parameter(
 						SyntaxFactory.Identifier(CONTEXT_METHOD_AUTHORITY_LOCAL_NAME))
-					.WithType(AuthorityProperty.Type),
+					.WithType(SynchronizedTypeAuthorityProperty.Type),
 					SyntaxFactory.Parameter(
 						SyntaxFactory.Identifier(CONTEXT_METHOD_ON_REVERT_LOCAL_NAME))
 					.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())))
@@ -918,6 +1007,94 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 			 */
 
 			return method;
+		}
+		private PropertyDeclarationSyntax GetContextAuthorityProperty()
+		{
+			PropertyDeclarationSyntax property;
+
+			if (SynchronizedTypeAuthorityProperty != null)
+			{
+				property = SyntaxFactory.PropertyDeclaration(
+						ISynchronizationAuthorityIdentifier.AsSyntax(),
+						CONTEXT_AUTHORITY_PROPERTY_NAME)
+					.AddAccessorListAccessors(
+						SyntaxFactory.AccessorDeclaration(
+							SyntaxKind.GetAccessorDeclaration)
+						.AddBodyStatements(
+							SyntaxFactory.ParseStatement(
+								$"return {CONTEXT_INSTANCE_PROPERTY_NAME}.{SynchronizedTypeAuthorityProperty.Identifier};")))
+					.AddModifiers(
+						SyntaxFactory.Token(
+							SynchronizationTargetAttribute.ContextTypeIsSealed &&
+							SynchronizationTargetAttribute.BaseContextTypeName == null ?
+							SyntaxKind.PrivateKeyword :
+							SyntaxKind.ProtectedKeyword));
+
+				if (SynchronizationTargetAttribute.BaseContextTypeName != null)
+				{
+					property = property
+						.AddModifiers(
+							SyntaxFactory.Token(
+								SyntaxKind.OverrideKeyword));
+				}
+
+				property = property.WithLeadingTrivia(CONTEXT_AUTHORITY_PROPERTY_SUMMARY.Split('\n').Select(SyntaxFactory.Comment));
+			}
+			else if (SynchronizationTargetAttribute.BaseContextTypeName == null)
+			{
+				throw new Exception($"Either {SynchronizedTypeIdentifier} or one of its synchronized base classes must provide a property annotated with {SynchronizationAuthorityAttributeIdentifier}.");
+			}
+			else
+			{
+				property = null;
+			}
+
+			return property;
+		}
+		private PropertyDeclarationSyntax GetContextTypeIdProperty()
+		{
+			var property = SyntaxFactory.PropertyDeclaration(
+					ISynchronizationAuthorityIdentifier.AsSyntax(),
+					CONTEXT_TYPE_ID_PROPERTY_NAME);
+
+			if (SynchronizedTypeTypeIdProperty != null)
+			{
+				property = property
+					.AddAccessorListAccessors(
+						SyntaxFactory.AccessorDeclaration(
+							SyntaxKind.GetAccessorDeclaration)
+						.AddBodyStatements(
+							SyntaxFactory.ParseStatement(
+								$"return {CONTEXT_INSTANCE_PROPERTY_NAME}.{SynchronizedTypeTypeIdProperty.Identifier};")))
+					.AddModifiers(
+						SyntaxFactory.Token(
+							SynchronizationTargetAttribute.ContextTypeIsSealed &&
+							SynchronizationTargetAttribute.BaseContextTypeName == null ?
+							SyntaxKind.PrivateKeyword :
+							SyntaxKind.ProtectedKeyword));
+
+				if (SynchronizationTargetAttribute.BaseContextTypeName != null)
+				{
+					property = property
+						.AddModifiers(
+							SyntaxFactory.Token(
+								SyntaxKind.OverrideKeyword));
+				}
+			}
+			else
+			{
+				property = null;
+			}
+
+			return property;
+		}
+		private PropertyDeclarationSyntax GetContextSourceInstanceIdProperty()
+		{
+			return null;
+		}
+		private PropertyDeclarationSyntax GetContextInstanceIdProperty()
+		{
+			return null;
 		}
 
 		private StatementSyntax GetRevertableUnsubscription(FieldDeclarationSyntax field, List<FieldDeclarationSyntax> requiredRevertions)
@@ -1053,7 +1230,7 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 		{
 			PropertyDeclarationSyntax property;
 
-			if (!TryGetIdProperty(idAttributeIdentifier, out _))
+			if (!TryGetIdProperty(idAttributeIdentifier, out _) && SynchronizationTargetAttribute.BaseContextTypeName == null)
 			{
 				property = SyntaxFactory.PropertyDeclaration(
 						TypeIdentifier.Create<String>().AsSyntax(),
@@ -1063,18 +1240,25 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 							SyntaxKind.PrivateKeyword))
 					.AddAccessorListAccessors(
 						SyntaxFactory.AccessorDeclaration(
-							SyntaxKind.SetAccessorDeclaration))
+							SyntaxKind.SetAccessorDeclaration)
+						.WithSemicolonToken(
+							SyntaxFactory.Token(
+								SyntaxKind.SemicolonToken)))
 					.WithInitializer(
 						SyntaxFactory.EqualsValueClause(
-							SyntaxFactory.ParseExpression("System.Guid.NewGuid().ToString()")))
-					.WithLeadingTrivia(fallbackSummary.Split('\n').Select(SyntaxFactory.Comment));
+							SyntaxFactory.ParseExpression("System.Guid.NewGuid().ToString()"))
+						.WithTrailingTrivia(
+							SyntaxFactory.Comment("\n")));
 
 				if (defaultHasSetter)
 				{
 					property = property
 						.AddAccessorListAccessors(
 							SyntaxFactory.AccessorDeclaration(
-								SyntaxKind.GetAccessorDeclaration));
+								SyntaxKind.GetAccessorDeclaration)
+							.WithSemicolonToken(
+								SyntaxFactory.Token(
+									SyntaxKind.SemicolonToken)));
 				}
 				if (defaultIsStatic)
 				{
@@ -1083,6 +1267,7 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 							SyntaxFactory.Token(
 								SyntaxKind.StaticKeyword));
 				}
+				property = property.WithLeadingTrivia(fallbackSummary.Split('\n').Select(SyntaxFactory.Comment));
 			}
 			else
 			{
@@ -1106,7 +1291,7 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 			}
 			else if (accessingInContext)
 			{
-				access = $"_instance.{propertyName}";
+				access = $"{CONTEXT_INSTANCE_PROPERTY_NAME}.{propertyName}";
 			}
 			else
 			{
@@ -1159,7 +1344,7 @@ $@"if (!this.{CONTEXT_IS_SYNCHRONIZED_PROPERTY_NAME})
 		#region Misc
 		private String GetAuthorityPropertyAccess(Boolean accessingInContext)
 		{
-			var authorityName = AuthorityProperty.Identifier.Text;
+			var authorityName = SynchronizedTypeAuthorityProperty.Identifier.Text;
 
 			var access = accessingInContext ?
 				$"{CONTEXT_INSTANCE_PROPERTY_NAME}.{authorityName}" :
