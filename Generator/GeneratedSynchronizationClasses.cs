@@ -6,9 +6,66 @@ using System.Threading.Tasks;
 using System.Threading;
 using RhoMicro.CodeAnalysis;
 using ObjectSync.Synchronization;
+using System.Runtime.InteropServices;
 
 namespace ObjectSync.Synchronization
 {
+	public struct Initializable<T> : IEquatable<Initializable<T>>
+	{
+		public Boolean IsAssigned => _isAssigned == 1;
+		public T Value { get; private set; }
+		private Int32 _isAssigned;
+
+		public Initializable(T value) : this()
+		{
+			Assign(value);
+		}
+
+		public void Assign(T value)
+		{
+			if (System.Threading.Interlocked.CompareExchange(ref _isAssigned, 1, 0) == 1)
+			{
+				throw new InvalidOperationException("Cannot initialize multiple times.");
+			}
+
+			Value = value;
+		}
+
+		public static implicit operator T(Initializable<T> initializable)
+		{
+			return initializable.Value;
+		}
+
+		public override String ToString()
+		{
+			return Value?.ToString();
+		}
+
+		public override Boolean Equals(Object obj)
+		{
+			return obj is Initializable<T> initializable && Equals(initializable);
+		}
+
+		public Boolean Equals(Initializable<T> other)
+		{
+			return EqualityComparer<T>.Default.Equals(Value, other.Value);
+		}
+
+		public override Int32 GetHashCode()
+		{
+			return -1937169414 + EqualityComparer<T>.Default.GetHashCode(Value);
+		}
+
+		public static Boolean operator ==(Initializable<T> left, Initializable<T> right)
+		{
+			return left.Equals(right);
+		}
+
+		public static Boolean operator !=(Initializable<T> left, Initializable<T> right)
+		{
+			return !(left == right);
+		}
+	}
 	public abstract class SynchronizationContextBase
 	{
 	}
@@ -220,6 +277,84 @@ namespace ObjectSync.Generator
 {
 	internal static class GeneratedSynchronizationClasses
 	{
+		#region Initializable
+		private const string Initializable_SOURCE =
+@"using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
+
+namespace ObjectSync.Synchronization
+{
+	public struct Initializable<T> : IEquatable<Initializable<T>>
+	{
+		public Boolean IsAssigned => _isAssigned == 1;
+		public T Value { get; private set; }
+		private Int32 _isAssigned;
+
+		public Initializable(T value) : this()
+		{
+			Assign(value);
+		}
+
+		public void Assign(T value)
+		{
+			if (System.Threading.Interlocked.CompareExchange(ref _isAssigned, 1, 0) == 1)
+			{
+				throw new InvalidOperationException(""Cannot initialize multiple times."");
+			}
+
+			Value = value;
+		}
+
+		public override String ToString()
+		{
+			return Value?.ToString();
+		}
+
+		public static implicit operator T(Initializable<T> initializable)
+		{
+			return initializable.Value;
+		}
+
+		public override Boolean Equals(Object obj)
+		{
+			return obj is Initializable<T> initializable && Equals(initializable);
+		}
+
+		public Boolean Equals(Initializable<T> other)
+		{
+			return EqualityComparer<T>.Default.Equals(Value, other.Value);
+		}
+
+		public override Int32 GetHashCode()
+		{
+			return -1937169414 + EqualityComparer<T>.Default.GetHashCode(Value);
+		}
+
+		public static Boolean operator ==(Initializable<T> left, Initializable<T> right)
+		{
+			return left.Equals(right);
+		}
+
+		public static Boolean operator !=(Initializable<T> left, Initializable<T> right)
+		{
+			return !(left == right);
+		}
+	}
+}";
+		public static GeneratedType Initializable { get; } = new GeneratedType(
+			TypeIdentifier.Create(
+				TypeIdentifierName.Create()
+					.AppendNamePart("Initializable"),
+				Namespace.Create()
+					.Append("ObjectSync")
+					.Append("Synchronization")),
+			new GeneratedSource(Initializable_SOURCE, "Initializable"));
+		#endregion
+
 		#region ISynchronizationContext
 		private const string SynchronizationContextBase_SOURCE =
 @"using System;

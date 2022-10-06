@@ -12,9 +12,6 @@ namespace TestApp.Data.AnotherNamespace
 
 		[Synchronized(PropertyAccessibility = Attributes.Accessibility.Private)]
 		private Byte _age;
-
-		[InstanceId]
-		private String InstanceId { get; } = Guid.NewGuid().ToString();
 	}
 
 	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext))]

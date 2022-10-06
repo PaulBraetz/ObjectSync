@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ObjectSync.Synchronization;
 using RhoMicro.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -32,7 +33,8 @@ namespace ObjectSync.Generator
 				GeneratedSynchronizationClasses.SynchronizationContextBase,
 				GeneratedSynchronizationClasses.StaticSynchronizationAuthority,
 				GeneratedSynchronizationClasses.SynchronizationAuthorityBase,
-				GeneratedSynchronizationClasses.SyncInfo
+				GeneratedSynchronizationClasses.SyncInfo,
+				GeneratedSynchronizationClasses.Initializable
 			}.ToImmutableList();
 		private static IEnumerable<GeneratedSource> SynchronizationClassesSources = SynchronizationClassesTypes.Select(t => t.Source).ToImmutableList();
 
