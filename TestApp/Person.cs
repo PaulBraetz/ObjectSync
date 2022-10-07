@@ -30,6 +30,9 @@ namespace TestApp.Data.AnotherNamespace
 		[Synchronized]
 		private String? _name;
 
+		[SourceInstanceId]
+		private String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
+
 		public override String ToString()
 		{
 			return $"{SourceInstanceId[..2]}-{Name}";

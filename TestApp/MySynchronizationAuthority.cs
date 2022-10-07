@@ -2,7 +2,7 @@
 
 namespace TestApp
 {
-	public sealed class MySynchronizationAuthority : StaticSynchronizationAuthority
+	internal sealed class MySynchronizationAuthority : StaticSynchronizationAuthority
 	{
 		protected override void Push<TProperty>(SyncInfo syncInfo, TProperty value)
 		{

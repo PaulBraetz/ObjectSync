@@ -10,15 +10,20 @@ using System.Runtime.InteropServices;
 
 namespace ObjectSync.Synchronization
 {
-	public struct Initializable<T> : IEquatable<Initializable<T>>
+	public sealed class Initializable<T> : IEquatable<Initializable<T>>
 	{
 		public Boolean IsAssigned => _isAssigned == 1;
 		public T Value { get; private set; }
 		private Int32 _isAssigned;
 
-		public Initializable(T value) : this()
+		public Initializable(T value)
 		{
 			Assign(value);
+		}
+
+		public Initializable()
+		{
+
 		}
 
 		public void Assign(T value)
@@ -65,9 +70,6 @@ namespace ObjectSync.Synchronization
 		{
 			return !(left == right);
 		}
-	}
-	public abstract class SynchronizationContextBase
-	{
 	}
 	public interface ISynchronizationAuthority
 	{
@@ -288,15 +290,20 @@ using System.Threading;
 
 namespace ObjectSync.Synchronization
 {
-	public struct Initializable<T> : IEquatable<Initializable<T>>
+	public sealed class Initializable<T> : IEquatable<Initializable<T>>
 	{
 		public Boolean IsAssigned => _isAssigned == 1;
 		public T Value { get; private set; }
 		private Int32 _isAssigned;
 
-		public Initializable(T value) : this()
+		public Initializable(T value)
 		{
 			Assign(value);
+		}
+
+		public Initializable()
+		{
+
 		}
 
 		public void Assign(T value)
@@ -352,25 +359,7 @@ namespace ObjectSync.Synchronization
 				Namespace.Create()
 					.Append("ObjectSync")
 					.Append("Synchronization")),
-			new GeneratedSource(Initializable_SOURCE, "Initializable"));
-		#endregion
-
-		#region ISynchronizationContext
-		private const string SynchronizationContextBase_SOURCE =
-@"using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
-
-namespace ObjectSync.Synchronization
-{
-	public abstract class SynchronizationContextBase
-	{
-	}
-}";
-		public static GeneratedType SynchronizationContextBase { get; } = new GeneratedType(TypeIdentifier.Create<SynchronizationContextBase>(), SynchronizationContextBase_SOURCE);
+			new GeneratedSource(Initializable_SOURCE, "ObjectSync.Synchronization.Initializable"));
 		#endregion
 
 		#region ISynchronizationAuthority

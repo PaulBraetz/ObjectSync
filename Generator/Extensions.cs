@@ -1,7 +1,9 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using ObjectSync.Attributes;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ObjectSync.Generator
@@ -57,6 +59,17 @@ namespace ObjectSync.Generator
 			}
 
 			return kinds;
+		}
+		public static SyntaxTriviaList AsLeadingTrivia(this String text)
+		{
+			if (!text.EndsWith("\n"))
+			{
+				text += "\n";
+			}
+
+			var comments = SyntaxFactory.ParseLeadingTrivia(text);
+
+			return comments;
 		}
 	}
 }

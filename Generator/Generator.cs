@@ -30,7 +30,6 @@ namespace ObjectSync.Generator
 		private static IEnumerable<GeneratedType> SynchronizationClassesTypes = new[]
 			{
 				GeneratedSynchronizationClasses.ISynchronizationAuthority,
-				GeneratedSynchronizationClasses.SynchronizationContextBase,
 				GeneratedSynchronizationClasses.StaticSynchronizationAuthority,
 				GeneratedSynchronizationClasses.SynchronizationAuthorityBase,
 				GeneratedSynchronizationClasses.SyncInfo,
@@ -45,10 +44,10 @@ namespace ObjectSync.Generator
 				return;
 			}
 
-			var sources = receiver.Types.Select(t => SynchronizedTypeSourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
+			var sources = receiver.Types.Select(t => SourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
 
-			Console.WriteLine(String.Join("\n\n", sources));
-			Console.ReadLine();
+			//Console.WriteLine(String.Join("\n\n", sources));
+			//Console.ReadLine();
 
 			context.AddSources(sources);
 		}

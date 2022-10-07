@@ -18,7 +18,7 @@ namespace ObjectSync.Attributes
 			NotApplicable = 0,
 			Private = 1,
 			/// <summary>
-			/// Only accessible where both protected and internal members are accessible (more
+			/// Only accessible where both protected and public members are accessible (more
 			/// restrictive than <see cref="Protected"/>, <see cref="Internal"/>
 			/// and <see cref="ProtectedOrInternal"/>).
 			/// </summary>
@@ -33,13 +33,13 @@ namespace ObjectSync.Attributes
 			Internal = 4,
 			//Friend = 4,
 			/// <summary>
-			/// Accessible wherever either protected or internal members are accessible(less
+			/// Accessible wherever either protected or public members are accessible(less
 			/// restrictive than <see cref="Protected"/>, <see cref="Internal"/>
 			/// and <see cref="ProtectedAndInternal"/>).
 			/// </summary>
 			ProtectedOrInternal = 5,
 			/// <summary>
-			/// Accessible wherever either protected or internal members are accessible(less
+			/// Accessible wherever either protected or public members are accessible(less
 			/// restrictive than <see cref="Protected"/>, <see cref="Friend"/>
 			/// and <see cref="ProtectedAndFriend"/>).
 			/// </summary>
@@ -106,31 +106,31 @@ namespace ObjectSync.Attributes
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
-		public Attributes.Accessibility PropertyAccessibility { get; set; } = Attributes.Accessibility.Public;
+		public ObjectSync.Attributes.Attributes.Accessibility PropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Public;
 	}
 	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 	public sealed class SynchronizationTargetAttribute : Attribute
 	{
 		private String contextPropertyName = "SynchronizationContext";
-		private Attributes.Accessibility contextTypeConstructorAccessibility = Attributes.Accessibility.Public;
+		private ObjectSync.Attributes.Attributes.Accessibility contextTypeConstructorAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Public;
 
 		public String BaseContextTypeName { get; set; } = null;
 
-		public Attributes.Accessibility ContextTypeAccessibility { get; set; } = Attributes.Accessibility.Private;
+		public ObjectSync.Attributes.Attributes.Accessibility ContextTypeAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Private;
 		public bool ContextTypeIsSealed { get; set; } = true;
-		public Attributes.Accessibility ContextTypeConstructorAccessibility
+		public ObjectSync.Attributes.Attributes.Accessibility ContextTypeConstructorAccessibility
 		{
 			get => contextTypeConstructorAccessibility;
 			set
 			{
-				if (value == Attributes.Accessibility.Private)
+				if (value == ObjectSync.Attributes.Attributes.Accessibility.Private)
 				{
-					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Private}.");
+					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {ObjectSync.Attributes.Attributes.Accessibility.Private}.");
 				}
 
-				if (ContextTypeIsSealed && value == Attributes.Accessibility.Protected)
+				if (ContextTypeIsSealed && value == ObjectSync.Attributes.Attributes.Accessibility.Protected)
 				{
-					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Protected} while {ContextTypeIsSealed} is {true}.");
+					throw new ArgumentException($"{nameof(ContextTypeConstructorAccessibility)} cannot be {ObjectSync.Attributes.Attributes.Accessibility.Protected} while {ContextTypeIsSealed} is {true}.");
 				}
 
 				contextTypeConstructorAccessibility = value;
@@ -150,8 +150,8 @@ namespace ObjectSync.Attributes
 				contextPropertyName = value;
 			}
 		}
-		public Attributes.Modifier ContextPropertyModifier { get; set; } = Attributes.Modifier.NotApplicable;
-		public Attributes.Accessibility ContextPropertyAccessibility { get; set; } = Attributes.Accessibility.Protected;
+		public ObjectSync.Attributes.Attributes.Modifier ContextPropertyModifier { get; set; } = ObjectSync.Attributes.Attributes.Modifier.NotApplicable;
+		public ObjectSync.Attributes.Attributes.Accessibility ContextPropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Protected;
 	}
 }
 
@@ -228,23 +228,23 @@ namespace ObjectSync.Attributes
 	public sealed class SynchronizationTargetAttribute : Attribute
 	{
 		private String contextPropertyName = ""SynchronizationContext"";
-		private Attributes.Accessibility contextTypeConstructorAccessibility = Attributes.Accessibility.Public;
+		private ObjectSync.Attributes.Attributes.Accessibility contextTypeConstructorAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Public;
 
 		public String BaseContextTypeName { get; set; } = null;
 
-		public Attributes.Accessibility ContextTypeAccessibility { get; set; } = Attributes.Accessibility.Private;
+		public ObjectSync.Attributes.Attributes.Accessibility ContextTypeAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Private;
 		public bool ContextTypeIsSealed { get; set; } = true;
-		public Attributes.Accessibility ContextTypeConstructorAccessibility
+		public ObjectSync.Attributes.Attributes.Accessibility ContextTypeConstructorAccessibility
 		{
 			get => contextTypeConstructorAccessibility;
 			set
 			{
-				if (value == Attributes.Accessibility.Private)
+				if (value == ObjectSync.Attributes.Attributes.Accessibility.Private)
 				{
 					throw new ArgumentException($""{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Private}."");
 				}
 
-				if (ContextTypeIsSealed && value == Attributes.Accessibility.Protected)
+				if (ContextTypeIsSealed && value == ObjectSync.Attributes.Attributes.Accessibility.Protected)
 				{
 					throw new ArgumentException($""{nameof(ContextTypeConstructorAccessibility)} cannot be {Attributes.Accessibility.Protected} while {ContextTypeIsSealed} is {true}."");
 				}
@@ -266,8 +266,8 @@ namespace ObjectSync.Attributes
 				contextPropertyName = value;
 			}
 		}
-		public Attributes.Modifier ContextPropertyModifier { get; set; } = Attributes.Modifier.NotApplicable;
-		public Attributes.Accessibility ContextPropertyAccessibility { get; set; } = Attributes.Accessibility.Protected;
+		public ObjectSync.Attributes.Attributes.Modifier ContextPropertyModifier { get; set; } = ObjectSync.Attributes.Attributes.Modifier.NotApplicable;
+		public ObjectSync.Attributes.Attributes.Accessibility ContextPropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Protected;
 	}
 }";
 		public static AttributeAnalysisUnit<SynchronizationTargetAttribute> SynchronizationTarget { get; } = new AttributeAnalysisUnit<SynchronizationTargetAttribute>(SYNCHRONIZATION_TARGET_SOURCE);
@@ -284,7 +284,7 @@ namespace ObjectSync.Attributes
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
 		public bool Observable { get; set; }
-		public Attributes.Accessibility PropertyAccessibility { get; set; } = Attributes.Accessibility.Public;
+		public ObjectSync.Attributes.Attributes.Accessibility PropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Public;
 	}
 }";
 		public static AttributeAnalysisUnit<SynchronizedAttribute> Synchronized { get; } = new AttributeAnalysisUnit<SynchronizedAttribute>(SYNCHRONIZED_SOURCE);
@@ -310,7 +310,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
 	public static class Attributes
-	{
+	{		
 		/// <summary>
 		/// Enumeration for common accessibility combinations. Taken from https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.accessibility?view=roslyn-dotnet-4.3.0
 		/// </summary>
@@ -322,7 +322,7 @@ namespace ObjectSync.Attributes
 			NotApplicable = 0,
 			Private = 1,
 			/// <summary>
-			/// Only accessible where both protected and internal members are accessible (more
+			/// Only accessible where both protected and public members are accessible (more
 			/// restrictive than <see cref=""Protected""/>, <see cref=""Internal""/>
 			/// and <see cref=""ProtectedOrInternal""/>).
 			/// </summary>
@@ -337,13 +337,13 @@ namespace ObjectSync.Attributes
 			Internal = 4,
 			//Friend = 4,
 			/// <summary>
-			/// Accessible wherever either protected or internal members are accessible(less
+			/// Accessible wherever either protected or public members are accessible(less
 			/// restrictive than <see cref=""Protected""/>, <see cref=""Internal""/>
 			/// and <see cref=""ProtectedAndInternal""/>).
 			/// </summary>
 			ProtectedOrInternal = 5,
 			/// <summary>
-			/// Accessible wherever either protected or internal members are accessible(less
+			/// Accessible wherever either protected or public members are accessible(less
 			/// restrictive than <see cref=""Protected""/>, <see cref=""Friend""/>
 			/// and <see cref=""ProtectedAndFriend""/>).
 			/// </summary>
@@ -353,9 +353,12 @@ namespace ObjectSync.Attributes
 
 		public enum Modifier
 		{
-			None,
+			/// <summary>
+			/// No modifier specified.
+			/// </summary>
+			NotApplicable,
 			Sealed,
-			Overrides,
+			Override,
 			Virtual,
 			New
 		}
