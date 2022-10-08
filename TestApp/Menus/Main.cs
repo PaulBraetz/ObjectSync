@@ -12,7 +12,7 @@ namespace TestApp.Menus
 {
 	internal sealed class Main : ExitableMenuBase
 	{
-		public Main() : base("testApp", "Exit")
+		public Main() : base("ObjectSync Demonstrator", "Exit")
 		{
 			var people = new List<Person>()
 			{
@@ -30,6 +30,8 @@ namespace TestApp.Menus
 			   .Append(k => new ListPeople(people, k))
 			   .Append(k => new CreatePerson(people, k))
 			   .Append(k => new SyncPerson(people, k))
+			   .Append(k => new SetName(people, k))
+			   .Append(k => new DesyncPerson(people, k))
 			   .Build(out var actions);
 
 			Children = children;

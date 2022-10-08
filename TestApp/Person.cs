@@ -7,15 +7,28 @@ namespace TestApp.Data.AnotherNamespace
 						   ContextTypeIsSealed = false)]
 	public abstract partial class PersonBase
 	{
+		public PersonBase()
+		{
+			_instanceCount++;
+			InstanceId = _instanceCount.ToString();
+		}
+
+		private static Int32 _instanceCount;
+
+
 		[SynchronizationAuthority]
 		protected ISynchronizationAuthority Authority { get; } = new MySynchronizationAuthority();
 
-		[Synchronized(PropertyAccessibility = Attributes.Accessibility.Private)]
-		private Byte _age;
+		[InstanceId]
+		public String InstanceId { get; }
+
+		[TypeId]
+		private static String TypeId { get; } = "PersonType";
 	}
 
-	[SynchronizationTarget]
-	internal sealed partial class Person// : PersonBase
+	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext),
+						   ContextTypeIsSealed = true)]
+	internal sealed partial class Person : PersonBase
 	{
 		public Person(String name)
 		{
@@ -27,18 +40,17 @@ namespace TestApp.Data.AnotherNamespace
 			SynchronizeTo(person);
 		}
 
-		[SynchronizationAuthority]
-		protected ISynchronizationAuthority Authority { get; } = new MySynchronizationAuthority();
-
 		[Synchronized]
 		private String? _name;
+		[Synchronized]
+		private Byte _age;
 
 		[SourceInstanceId]
-		private String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
+		public String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
 
 		public override String ToString()
 		{
-			return $"{SourceInstanceId[..2]}-{Name}";
+			return $"{InstanceId}->{String.Concat(SourceInstanceId.Take(2))}-{Name}";
 		}
 
 		public void Desynchronize()

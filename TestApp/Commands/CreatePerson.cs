@@ -19,7 +19,6 @@ namespace TestApp.Commands
 			var name = Read("Enter name: ");
 			var newPerson = new Person(name);
 			People.Add(newPerson);
-			Console.WriteLine($"Created Person: {newPerson}");
 		}
 	}
 }

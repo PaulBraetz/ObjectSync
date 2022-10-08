@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectSync.Synchronization"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyntaxDiscovery", "SyntaxDiscovery\SyntaxDiscovery.csproj", "{67CBDA1E-3AFB-4AFE-8D0C-5D88D1F586B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{4E5EA783-D60D-4B7E-9482-B0DF068D0598}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{67CBDA1E-3AFB-4AFE-8D0C-5D88D1F586B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{67CBDA1E-3AFB-4AFE-8D0C-5D88D1F586B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{67CBDA1E-3AFB-4AFE-8D0C-5D88D1F586B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E5EA783-D60D-4B7E-9482-B0DF068D0598}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E5EA783-D60D-4B7E-9482-B0DF068D0598}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E5EA783-D60D-4B7E-9482-B0DF068D0598}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E5EA783-D60D-4B7E-9482-B0DF068D0598}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

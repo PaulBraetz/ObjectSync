@@ -16,18 +16,13 @@ namespace TestApp.Commands
 
 		public override void Run()
 		{
-			var name = Read("Enter person to sync: ");
-			var sourceName = Read("Enter source person to sync to: ");
+			var id = Read("Enter id: ");
+			var p = People.Single(p => p.InstanceId.StartsWith(id));
 
-			var p = People.SingleOrDefault(p => p.Name == name);
-			p.ThrowIfDefault("person");
-
-			var source = People.SingleOrDefault(p => p.Name == sourceName);
-			source.ThrowIfDefault("source");
-
+			var sourceId = Read("Enter source id: ");
+			var source = People.Single(p => p.InstanceId.StartsWith(sourceId));
 
 			p!.SynchronizeTo(source!);
-			Console.WriteLine($"Synchronized {name} to {sourceName}");
 		}
 	}
 }
