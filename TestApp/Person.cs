@@ -8,14 +8,14 @@ namespace TestApp.Data.AnotherNamespace
 	public abstract partial class PersonBase
 	{
 		[SynchronizationAuthority]
-		protected ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+		protected ISynchronizationAuthority Authority { get; } = new MySynchronizationAuthority();
 
 		[Synchronized(PropertyAccessibility = Attributes.Accessibility.Private)]
 		private Byte _age;
 	}
 
-	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext))]
-	internal sealed partial class Person : PersonBase
+	[SynchronizationTarget]
+	internal sealed partial class Person// : PersonBase
 	{
 		public Person(String name)
 		{
@@ -26,6 +26,9 @@ namespace TestApp.Data.AnotherNamespace
 		{
 			SynchronizeTo(person);
 		}
+
+		[SynchronizationAuthority]
+		protected ISynchronizationAuthority Authority { get; } = new MySynchronizationAuthority();
 
 		[Synchronized]
 		private String? _name;

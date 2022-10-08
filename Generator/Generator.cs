@@ -46,8 +46,10 @@ namespace ObjectSync.Generator
 
 			var sources = receiver.Types.Select(t => SourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
 
-			//Console.WriteLine(String.Join("\n\n", sources));
-			//Console.ReadLine();
+#if DEBUG
+			Console.WriteLine(String.Join("\n\n", sources));
+			Console.ReadLine();
+#endif
 
 			context.AddSources(sources);
 		}

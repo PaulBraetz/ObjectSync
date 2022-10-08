@@ -127,9 +127,6 @@ An error occured while generating this source file for {Declared.TypeIdentifier}
 		private StatementSyntax GetSetStatement(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{
 			var propertyChangingCall = GetPropertyChangingCall(field, fromWithinContext);
-			var instance = fromWithinContext ?
-				$"{Context.AuthorityPropertyName}." :
-				"this.";
 			var fieldName = GetFieldName(field);
 			var propertyChangedCall = GetPropertyChangedCall(field, fromWithinContext);
 

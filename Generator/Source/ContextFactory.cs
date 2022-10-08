@@ -391,7 +391,7 @@ namespace ObjectSync.Generator
 							SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
 							.AddBodyStatements(
 								SyntaxFactory.ParseStatement("var valueInt = value?1:0;"),
-								SyntaxFactory.ParseStatement($"var requiredValueInt = this.{IsSynchronizedFieldName} == 1?0:1;"),
+								SyntaxFactory.ParseStatement($"var requiredValueInt = this.{IsSynchronizedFieldName}/* == 1?0:1*/;"),
 								SyntaxFactory.ParseStatement(
 	$@"if(System.Threading.Interlocked.CompareExchange(ref {IsSynchronizedFieldName}, valueInt, requiredValueInt) == requiredValueInt)
 {{
@@ -555,14 +555,7 @@ namespace ObjectSync.Generator
 							_parent.ISynchronizationAuthorityIdentifier.AsSyntax()),
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalOnRevertName))
-						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())))
-					.AddModifiers(
-						SyntaxFactory.Token(
-							SyntaxKind.ProtectedKeyword),
-						SyntaxFactory.Token(
-							_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null ?
-							SyntaxKind.VirtualKeyword :
-							SyntaxKind.OverrideKeyword));
+						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())));
 
 				method = method
 					.AddBodyStatements(RevertableUnsubscriptions)
@@ -573,6 +566,24 @@ namespace ObjectSync.Generator
 					method = method
 						.AddBodyStatements(
 							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}")};"));
+				}
+
+				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null &&
+					_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed)
+				{
+					method = method.AddModifiers(
+						SyntaxFactory.Token(
+							SyntaxKind.PrivateKeyword));
+				}
+				else
+				{
+					method = method.AddModifiers(
+						SyntaxFactory.Token(
+							SyntaxKind.ProtectedKeyword),
+						SyntaxFactory.Token(
+							_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null ?
+							SyntaxKind.VirtualKeyword :
+							SyntaxKind.OverrideKeyword));
 				}
 
 				return method;
@@ -640,17 +651,13 @@ namespace ObjectSync.Generator
 							_parent.ISynchronizationAuthorityIdentifier.AsSyntax()),
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalOnRevertName))
-						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())))
-					.AddModifiers(
-						SyntaxFactory.Token(
-							SyntaxKind.ProtectedKeyword),
-						SyntaxFactory.Token(
-							_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null ?
-							SyntaxKind.VirtualKeyword :
-							SyntaxKind.OverrideKeyword));
+						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())));
 
 				method = method
 					.AddBodyStatements(RevertableSubscriptions)
+					.AddBodyStatements(
+						SyntaxFactory.ParseStatement($@"{String.Join("\n", Pulls.Select(s => s.ToFullString()))}"),
+						SyntaxFactory.ParseStatement($"{String.Join("\n", PullAssignments.Select(s => s.ToFullString()))}"))
 					.WithLeadingTrivia(SynchronizeUnlockedMethodSummary.AsLeadingTrivia());
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName != null)
@@ -658,6 +665,24 @@ namespace ObjectSync.Generator
 					method = method
 						.AddBodyStatements(
 							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)}")};"));
+				}
+
+				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null &&
+					_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed)
+				{
+					method = method.AddModifiers(
+						SyntaxFactory.Token(
+							SyntaxKind.PrivateKeyword));
+				}
+				else
+				{
+					method = method.AddModifiers(
+						SyntaxFactory.Token(
+							SyntaxKind.ProtectedKeyword),
+						SyntaxFactory.Token(
+							_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null ?
+							SyntaxKind.VirtualKeyword :
+							SyntaxKind.OverrideKeyword));
 				}
 
 				return method;
@@ -695,13 +720,8 @@ $@"lock(this.{SyncRootPropertyName})
 		{String.Join("\n", Pulls.Select(s => s.ToFullString()))}
 
 		{String.Join("\n", PullAssignments.Select(s => s.ToFullString()))}
-
-		this.{IsSynchronizedPropertyName} = true;
 	}}
-	else
-	{{
-		this.{IsSynchronizedPropertyName} = true;
-	}}
+	this.{IsSynchronizedPropertyName} = true;
 }}"))
 					.AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
 					.WithLeadingTrivia(ResynchronizeMethodSummary.AsLeadingTrivia());
@@ -874,11 +894,11 @@ $@"if({InvokeMethodMethodParameterName} != null)
 
 			private StatementSyntax GetUnsubscription(FieldDeclarationSyntax field)
 			{
-				var propertyName = _parent.GetGeneratedPropertyName(field);
+				var fieldName = _parent.GetFieldName(field);
 
 				var statement = SyntaxFactory.ParseStatement($"{_parent.Context.LocalAuthorityName}.Unsubscribe(" +
 															 $"{_parent.Context.LocalTypeIdName}, \"" +
-															 $"{propertyName}\", " +
+															 $"{fieldName}\", " +
 															 $"{_parent.Context.LocalSourceInstanceIdName}, " +
 															 $"{_parent.Context.LocalInstanceIdName});");
 
@@ -935,13 +955,13 @@ $@"if({InvokeMethodMethodParameterName} != null)
 			{
 				var fieldType = _parent.GetFieldType(field);
 
-				var propertyName = _parent.GetGeneratedPropertyName(field);
+				var fieldName = _parent.GetFieldName(field);
 				var setStatement = _parent.GetSetStatement(field, fromWithinContext: true);
 
 				var statement = SyntaxFactory.ParseStatement($"{_parent.Context.LocalAuthorityName}.Subscribe<" +
 															 $"{fieldType}>(" +
 															 $"{_parent.Context.LocalTypeIdName}, \"" +
-															 $"{propertyName}\", " +
+															 $"{fieldName}\", " +
 															 $"{_parent.Context.LocalSourceInstanceIdName}, " +
 															 $"{_parent.Context.LocalInstanceIdName}, (value) => {{" +
 															 $"{setStatement}}});");
@@ -952,13 +972,14 @@ $@"if({InvokeMethodMethodParameterName} != null)
 			private StatementSyntax GetPull(FieldDeclarationSyntax field)
 			{
 				var fieldType = _parent.GetFieldType(field);
+				var fieldName = _parent.GetFieldName(field);
 				var propertyName = _parent.GetGeneratedPropertyName(field);
 
 				var statement = SyntaxFactory.ParseStatement($"var {_parent.Context.PullValuePrefix}{propertyName} = " +
 															 $"{_parent.Context.LocalAuthorityName}.Pull<" +
 															 $"{fieldType}>(" +
 															 $"{_parent.Context.LocalTypeIdName}, \"" +
-															 $"{propertyName}\", " +
+															 $"{fieldName}\", " +
 															 $"{_parent.Context.LocalSourceInstanceIdName}, " +
 															 $"{_parent.Context.LocalInstanceIdName});");
 

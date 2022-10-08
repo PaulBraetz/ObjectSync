@@ -14,7 +14,13 @@ namespace TestApp.Menus
 	{
 		public Main() : base("testApp", "Exit")
 		{
-			var people = new List<Person>();
+			var people = new List<Person>()
+			{
+				new Person("Jake"),
+				new Person("Mary"),
+				new Person("Walther"),
+				new Person("Jane")
+			};
 
 			new CommandCollectionBuilder<IMenu>()
 			   .Append(Children)

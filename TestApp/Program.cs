@@ -7,7 +7,7 @@ namespace TestApp
 	{
 		static void Main(string[] args)
 		{
-			new Main().Run();
+			//new Main().Run();
 
 			var p0 = new Person("Haris");
 			var p1 = new Person("Mike");

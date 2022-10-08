@@ -73,35 +73,35 @@ namespace ObjectSync.Synchronization
 	}
 	public interface ISynchronizationAuthority
 	{
-		TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId);
-		void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value);
-		void Subscribe<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
-		void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId);
+		TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId);
+		void Push<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, TProperty value);
+		void Subscribe<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
+		void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId);
 	}
 	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
-		private class PropertyStateBase
+		private class FieldStateContextBase
 		{
-			public static PropertyStateBase Default { get; } = new PropertyStateBase();
+			public static FieldStateContextBase Default { get; } = new FieldStateContextBase();
 
 			public virtual void Remove(SyncInfo syncInfo) { }
 		}
-		private sealed class PropertyState<TProperty> : PropertyStateBase
+		private sealed class FieldStateContext<TField> : FieldStateContextBase
 		{
 #pragma warning disable CS8618
-			private TProperty _value;
+			private TField _value;
 #pragma warning restore CS8618
 			private readonly SemaphoreSlim _valueGate = new SemaphoreSlim(1, 1);
-			private readonly ConcurrentDictionary<String, Action<TProperty>> _callbacks = new ConcurrentDictionary<string, Action<TProperty>>();
+			private readonly ConcurrentDictionary<String, Action<TField>> _callbacks = new ConcurrentDictionary<string, Action<TField>>();
 			private readonly Int32 _degreeOfParallelism = Environment.ProcessorCount > 1 ?
 														  Environment.ProcessorCount / 2 :
 														  1;
 
-			public TProperty GetValue()
+			public TField GetValue()
 			{
 				return _value;
 			}
-			public void SetValue(SyncInfo syncInfo, TProperty value)
+			public void SetValue(SyncInfo syncInfo, TField value)
 			{
 				_valueGate.Wait();
 				try
@@ -120,7 +120,7 @@ namespace ObjectSync.Synchronization
 						throw new AggregateException(exceptions);
 					}
 
-					void invokeCallbacks(IEnumerable<Action<TProperty>> callbacks)
+					void invokeCallbacks(IEnumerable<Action<TField>> callbacks)
 					{
 						foreach (var callback in callbacks)
 						{
@@ -141,7 +141,7 @@ namespace ObjectSync.Synchronization
 					_ = _valueGate.Release();
 				}
 			}
-			public void Add(SyncInfo syncInfo, Action<TProperty> callback)
+			public void Add(SyncInfo syncInfo, Action<TField> callback)
 			{
 				_ = _callbacks.AddOrUpdate(syncInfo.InstanceId, callback, (key, value) => callback);
 			}
@@ -156,44 +156,44 @@ namespace ObjectSync.Synchronization
 		public static readonly StaticSynchronizationAuthority Instance = new StaticSynchronizationAuthority();
 
 		//PropertySynchronizationGroupId->PropertyState
-		private static readonly ConcurrentDictionary<String, Object> _propertyStates = new ConcurrentDictionary<string, object>();
+		private static readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
 
-		private static PropertyState<TProperty> GetPropertyState<TProperty>(SyncInfo syncInfo)
+		private static FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
 		{
-			var context = (PropertyState<TProperty>)_propertyStates.GetOrAdd(syncInfo.PropertyStateId, new PropertyState<TProperty>());
+			var context = (FieldStateContext<TField>)_fieldStates.GetOrAdd(syncInfo.FieldStateId, new FieldStateContext<TField>());
 
 			return context;
 		}
-		private static PropertyStateBase GetPropertyState(SyncInfo syncInfo)
+		private static FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
 		{
-			var context = _propertyStates.TryGetValue(syncInfo.PropertyStateId, out var state) ?
-				(PropertyStateBase)state :
-				PropertyStateBase.Default;
+			var context = _fieldStates.TryGetValue(syncInfo.FieldStateId, out var state) ?
+				(FieldStateContextBase)state :
+				FieldStateContextBase.Default;
 
 			return context;
 		}
 
-		protected override void Push<TProperty>(SyncInfo syncInfo, TProperty value)
+		protected override void Push<TField>(SyncInfo syncInfo, TField value)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			context.SetValue(syncInfo, value);
 		}
 
-		protected override void Subscribe<TProperty>(SyncInfo syncInfo, Action<TProperty> callback)
+		protected override void Subscribe<TField>(SyncInfo syncInfo, Action<TField> callback)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			context.Add(syncInfo, callback);
 		}
 
 		protected override void Unsubscribe(SyncInfo syncInfo)
 		{
-			var context = GetPropertyState(syncInfo);
+			var context = GetFieldContext(syncInfo);
 			context.Remove(syncInfo);
 		}
 
-		protected override TProperty Pull<TProperty>(SyncInfo syncInfo)
+		protected override TField Pull<TField>(SyncInfo syncInfo)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			var value = context.GetValue();
 
 			return value;
@@ -202,46 +202,46 @@ namespace ObjectSync.Synchronization
 	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);
-		public TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId)
+		public TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId)
 		{
-			return Pull<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId));
+			return Pull<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId));
 		}
 
 		protected abstract void Push<TProperty>(SyncInfo syncInfo, TProperty value);
-		public void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value)
+		public void Push<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, TProperty value)
 		{
-			Push<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId), value);
+			Push<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId), value);
 		}
 
 		protected abstract void Subscribe<TProperty>(SyncInfo syncInfo, Action<TProperty> callback);
-		public void Subscribe<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, Action<TProperty> callback)
+		public void Subscribe<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, Action<TProperty> callback)
 		{
-			Subscribe<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId), callback);
+			Subscribe<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId), callback);
 		}
 
 		protected abstract void Unsubscribe(SyncInfo syncInfo);
-		public void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId)
+		public void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId)
 		{
-			Unsubscribe(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId));
+			Unsubscribe(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId));
 		}
 	}
 	public readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;
-		public readonly String PropertyName;
+		public readonly String FieldName;
 		public readonly String SourceInstanceId;
 		public readonly String InstanceId;
 
-		public readonly String PropertyStateId;
+		public readonly String FieldStateId;
 
-		public SyncInfo(String typeId, String propertyName, String sourceInstanceId, String instanceId) : this()
+		public SyncInfo(String typeId, String fieldName, String sourceInstanceId, String instanceId) : this()
 		{
 			TypeId = typeId ?? throw new ArgumentNullException(nameof(typeId));
-			PropertyName = propertyName ?? throw new ArgumentNullException(nameof(propertyName));
+			FieldName = fieldName ?? throw new ArgumentNullException(nameof(fieldName));
 			SourceInstanceId = sourceInstanceId ?? throw new ArgumentNullException(nameof(sourceInstanceId));
 			InstanceId = instanceId ?? throw new ArgumentNullException(nameof(instanceId));
 
-			PropertyStateId = $"{TypeId}.{PropertyName}[{SourceInstanceId}]";
+			FieldStateId = $"{TypeId}.{FieldName}[{SourceInstanceId}]";
 		}
 
 		public override Boolean Equals(Object obj)
@@ -252,14 +252,14 @@ namespace ObjectSync.Synchronization
 		public Boolean Equals(SyncInfo other)
 		{
 			return InstanceId == other.InstanceId &&
-				   PropertyStateId == other.PropertyStateId;
+				   FieldStateId == other.FieldStateId;
 		}
 
 		public override Int32 GetHashCode()
 		{
 			var hashCode = -1129730193;
 			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(InstanceId);
-			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(PropertyStateId);
+			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(FieldStateId);
 			return hashCode;
 		}
 
@@ -375,10 +375,10 @@ namespace ObjectSync.Synchronization
 {
 	public interface ISynchronizationAuthority
 	{
-		TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId);
-		void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value);
-		void Subscribe<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
-		void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId);
+		TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId);
+		void Push<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, TProperty value);
+		void Subscribe<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
+		void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId);
 	}
 }";
 		public static GeneratedType ISynchronizationAuthority { get; } = new GeneratedType(TypeIdentifier.Create<ISynchronizationAuthority>(), ISynchronizationAuthority_SOURCE);
@@ -397,28 +397,28 @@ namespace ObjectSync.Synchronization
 {
 	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
-		private class PropertyStateBase
+		private class FieldStateContextBase
 		{
-			public static PropertyStateBase Default { get; } = new PropertyStateBase();
+			public static FieldStateContextBase Default { get; } = new FieldStateContextBase();
 
 			public virtual void Remove(SyncInfo syncInfo) { }
 		}
-		private sealed class PropertyState<TProperty> : PropertyStateBase
+		private sealed class FieldStateContext<TField> : FieldStateContextBase
 		{
 #pragma warning disable CS8618
-			private TProperty _value;
+			private TField _value;
 #pragma warning restore CS8618
 			private readonly SemaphoreSlim _valueGate = new SemaphoreSlim(1, 1);
-			private readonly ConcurrentDictionary<String, Action<TProperty>> _callbacks = new ConcurrentDictionary<string, Action<TProperty>>();
+			private readonly ConcurrentDictionary<String, Action<TField>> _callbacks = new ConcurrentDictionary<string, Action<TField>>();
 			private readonly Int32 _degreeOfParallelism = Environment.ProcessorCount > 1 ?
 														  Environment.ProcessorCount / 2 :
 														  1;
 
-			public TProperty GetValue()
+			public TField GetValue()
 			{
 				return _value;
 			}
-			public void SetValue(SyncInfo syncInfo, TProperty value)
+			public void SetValue(SyncInfo syncInfo, TField value)
 			{
 				_valueGate.Wait();
 				try
@@ -437,7 +437,7 @@ namespace ObjectSync.Synchronization
 						throw new AggregateException(exceptions);
 					}
 
-					void invokeCallbacks(IEnumerable<Action<TProperty>> callbacks)
+					void invokeCallbacks(IEnumerable<Action<TField>> callbacks)
 					{
 						foreach (var callback in callbacks)
 						{
@@ -458,7 +458,7 @@ namespace ObjectSync.Synchronization
 					_ = _valueGate.Release();
 				}
 			}
-			public void Add(SyncInfo syncInfo, Action<TProperty> callback)
+			public void Add(SyncInfo syncInfo, Action<TField> callback)
 			{
 				_ = _callbacks.AddOrUpdate(syncInfo.InstanceId, callback, (key, value) => callback);
 			}
@@ -473,44 +473,44 @@ namespace ObjectSync.Synchronization
 		public static readonly StaticSynchronizationAuthority Instance = new StaticSynchronizationAuthority();
 
 		//PropertySynchronizationGroupId->PropertyState
-		private static readonly ConcurrentDictionary<String, Object> _propertyStates = new ConcurrentDictionary<string, object>();
+		private static readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
 
-		private static PropertyState<TProperty> GetPropertyState<TProperty>(SyncInfo syncInfo)
+		private static FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
 		{
-			var context = (PropertyState<TProperty>)_propertyStates.GetOrAdd(syncInfo.PropertyStateId, new PropertyState<TProperty>());
+			var context = (FieldStateContext<TField>)_fieldStates.GetOrAdd(syncInfo.FieldStateId, new FieldStateContext<TField>());
 
 			return context;
 		}
-		private static PropertyStateBase GetPropertyState(SyncInfo syncInfo)
+		private static FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
 		{
-			var context = _propertyStates.TryGetValue(syncInfo.PropertyStateId, out var state) ?
-				(PropertyStateBase)state :
-				PropertyStateBase.Default;
+			var context = _fieldStates.TryGetValue(syncInfo.FieldStateId, out var state) ?
+				(FieldStateContextBase)state :
+				FieldStateContextBase.Default;
 
 			return context;
 		}
 
-		protected override void Push<TProperty>(SyncInfo syncInfo, TProperty value)
+		protected override void Push<TField>(SyncInfo syncInfo, TField value)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			context.SetValue(syncInfo, value);
 		}
 
-		protected override void Subscribe<TProperty>(SyncInfo syncInfo, Action<TProperty> callback)
+		protected override void Subscribe<TField>(SyncInfo syncInfo, Action<TField> callback)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			context.Add(syncInfo, callback);
 		}
 
 		protected override void Unsubscribe(SyncInfo syncInfo)
 		{
-			var context = GetPropertyState(syncInfo);
+			var context = GetFieldContext(syncInfo);
 			context.Remove(syncInfo);
 		}
 
-		protected override TProperty Pull<TProperty>(SyncInfo syncInfo)
+		protected override TField Pull<TField>(SyncInfo syncInfo)
 		{
-			var context = GetPropertyState<TProperty>(syncInfo);
+			var context = GetFieldContext<TField>(syncInfo);
 			var value = context.GetValue();
 
 			return value;
@@ -534,27 +534,27 @@ namespace ObjectSync.Synchronization
 	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);
-		public TProperty Pull<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId)
+		public TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId)
 		{
-			return Pull<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId));
+			return Pull<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId));
 		}
 
 		protected abstract void Push<TProperty>(SyncInfo syncInfo, TProperty value);
-		public void Push<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, TProperty value)
+		public void Push<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, TProperty value)
 		{
-			Push<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId), value);
+			Push<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId), value);
 		}
 
 		protected abstract void Subscribe<TProperty>(SyncInfo syncInfo, Action<TProperty> callback);
-		public void Subscribe<TProperty>(String typeId, String propertyName, String sourceInstanceId, String instanceId, Action<TProperty> callback)
+		public void Subscribe<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, Action<TProperty> callback)
 		{
-			Subscribe<TProperty>(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId), callback);
+			Subscribe<TProperty>(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId), callback);
 		}
 
 		protected abstract void Unsubscribe(SyncInfo syncInfo);
-		public void Unsubscribe(String typeId, String propertyName, String sourceInstanceId, String instanceId)
+		public void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId)
 		{
-			Unsubscribe(new SyncInfo(typeId, propertyName, sourceInstanceId, instanceId));
+			Unsubscribe(new SyncInfo(typeId, fieldName, sourceInstanceId, instanceId));
 		}
 	}
 }";
@@ -575,20 +575,20 @@ namespace ObjectSync.Synchronization
 	public readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;
-		public readonly String PropertyName;
+		public readonly String FieldName;
 		public readonly String SourceInstanceId;
 		public readonly String InstanceId;
 
-		public readonly String PropertyStateId;
+		public readonly String FieldStateId;
 
-		public SyncInfo(String typeId, String propertyName, String sourceInstanceId, String instanceId) : this()
+		public SyncInfo(String typeId, String fieldName, String sourceInstanceId, String instanceId) : this()
 		{
 			TypeId = typeId ?? throw new ArgumentNullException(nameof(typeId));
-			PropertyName = propertyName ?? throw new ArgumentNullException(nameof(propertyName));
+			FieldName = fieldName ?? throw new ArgumentNullException(nameof(fieldName));
 			SourceInstanceId = sourceInstanceId ?? throw new ArgumentNullException(nameof(sourceInstanceId));
 			InstanceId = instanceId ?? throw new ArgumentNullException(nameof(instanceId));
 
-			PropertyStateId = $""{TypeId}.{PropertyName}[{SourceInstanceId}]"";
+			FieldStateId = $""{TypeId}.{FieldName}[{SourceInstanceId}]"";
 		}
 
 		public override Boolean Equals(Object obj)
@@ -599,14 +599,14 @@ namespace ObjectSync.Synchronization
 		public Boolean Equals(SyncInfo other)
 		{
 			return InstanceId == other.InstanceId &&
-				   PropertyStateId == other.PropertyStateId;
+				   FieldStateId == other.FieldStateId;
 		}
 
 		public override Int32 GetHashCode()
 		{
 			var hashCode = -1129730193;
 			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(InstanceId);
-			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(PropertyStateId);
+			hashCode = hashCode * -1521134295 + EqualityComparer<String>.Default.GetHashCode(FieldStateId);
 			return hashCode;
 		}
 
