@@ -9,7 +9,7 @@
 
 	<ItemGroup>
 	  <PackageReference Include="RhoMicro.Fort" Version="1.1.1" />
-	  <PackageReference Include="RhoMicro.Scli" Version="1.1.0" />
+	  <PackageReference Include="RhoMicro.Scli" Version="1.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
