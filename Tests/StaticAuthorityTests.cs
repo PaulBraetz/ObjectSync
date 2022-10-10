@@ -15,7 +15,7 @@ namespace Tests
 		private ISynchronizationAuthority Authority { get; } = new SampleAuthority();
 
 		[Synchronized]
-		private T _value;
+		private T? _value;
 
 		public void Synchronize(SampleEntity<T> other)
 		{
@@ -44,7 +44,7 @@ namespace Tests
 				}
 			});
 
-			static void pushPull<T>(T pushedValue)
+			static void pushPull(T pushedValue)
 			{
 				String typeId = Guid.NewGuid().ToString();
 				String sourceInstanceId = Guid.NewGuid().ToString();
@@ -85,7 +85,8 @@ namespace Tests
 			PushPull(i => new Object(), 10000);
 		}
 
-		public void SubscribePush<T>(Func<Int32, T> rng, Int32 count = 10000)
+		//TODO: continue here
+		private void SubscribePush<T>(Func<Int32, T> rng, Int32 count = 10000)
 		{
 			var entities = Enumerable.Range(0, 100)
 				.Select(i => new SampleEntity<T>());
@@ -106,7 +107,7 @@ namespace Tests
 				}
 			});
 
-			static void pushPull<T>(T pushedValue)
+			static void pushPull(T pushedValue)
 			{
 				String typeId = Guid.NewGuid().ToString();
 				String sourceInstanceId = Guid.NewGuid().ToString();

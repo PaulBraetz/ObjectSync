@@ -10,6 +10,7 @@ using System;
 using System.Net.Mime;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace ObjectSync.Generator
 {
@@ -117,7 +118,17 @@ An error occured while generating this source file for {Declared.TypeIdentifier}
 
 			var generatedTypeDeclaration = SyntaxFactory.TypeDeclaration(SyntaxKind.ClassDeclaration, synchronizedTypeDeclarationName)
 				.WithModifiers(Declared.Type.Modifiers)
-				.WithMembers(new SyntaxList<MemberDeclarationSyntax>(generatedTypeMembers));
+				.WithMembers(new SyntaxList<MemberDeclarationSyntax>(generatedTypeMembers))
+				.WithLeadingTrivia(
+					SyntaxFactory.Trivia(
+						SyntaxFactory.NullableDirectiveTrivia(
+							SyntaxFactory.Token(SyntaxKind.RestoreKeyword),
+							true)))
+				.WithTrailingTrivia(
+					SyntaxFactory.Trivia(
+						SyntaxFactory.NullableDirectiveTrivia(
+							SyntaxFactory.Token(SyntaxKind.DisableKeyword),
+							true)));
 
 			return generatedTypeDeclaration;
 		}
@@ -221,7 +232,7 @@ $@"{propertyChangingCall}
 
 			namespaceDeclaration = node == null ?
 				null :
-				node as BaseNamespaceDeclarationSyntax;
+				(node as BaseNamespaceDeclarationSyntax);
 
 			return namespaceDeclaration != null;
 		}

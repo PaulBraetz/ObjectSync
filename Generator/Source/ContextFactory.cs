@@ -278,6 +278,12 @@ namespace ObjectSync.Generator
 								SyntaxFactory.ParseTypeName(_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName))));
 				}
 
+				contextTypeDeclaration = contextTypeDeclaration
+						.WithLeadingTrivia(SyntaxFactory.ParseLeadingTrivia("#nullable disable\r\n"))
+						.WithTrailingTrivia(SyntaxFactory.ParseLeadingTrivia("\r\n#nullable restore"));
+
+				var t = contextTypeDeclaration.NormalizeWhitespace().ToFullString();
+
 				return contextTypeDeclaration;
 			}
 			public MemberDeclarationSyntax[] GetMembers()
@@ -518,7 +524,7 @@ namespace ObjectSync.Generator
 				var {LocalSourceInstanceIdName} = {SourceInstanceIdAccess};
 				var {LocalInstanceIdName} = {InstanceIdAccess};
 
-				{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)};
+				{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)}
 			}}
 
 			{IsSynchronizedPropertyName} = false;
@@ -565,7 +571,7 @@ namespace ObjectSync.Generator
 				{
 					method = method
 						.AddBodyStatements(
-							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}")};"));
+							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName, setSemicolon: false)}")}"));
 				}
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null &&
@@ -614,7 +620,7 @@ namespace ObjectSync.Generator
 				var {LocalSourceInstanceIdName} = {SourceInstanceIdAccess};
 				var {LocalInstanceIdName} = {InstanceIdAccess};
 
-				{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)};
+				{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 			}}
 
 			{IsSynchronizedPropertyName} = true;
@@ -656,15 +662,15 @@ namespace ObjectSync.Generator
 				method = method
 					.AddBodyStatements(RevertableSubscriptions)
 					.AddBodyStatements(
-						SyntaxFactory.ParseStatement($@"{String.Join("\n", Pulls.Select(s => s.ToFullString()))}"),
-						SyntaxFactory.ParseStatement($"{String.Join("\n", PullAssignments.Select(s => s.ToFullString()))}"))
+						SyntaxFactory.ParseStatement($@"{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}"),
+						SyntaxFactory.ParseStatement($"{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}"))
 					.WithLeadingTrivia(SynchronizeUnlockedMethodSummary.AsLeadingTrivia());
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName != null)
 				{
 					method = method
 						.AddBodyStatements(
-							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)}")};"));
+							SyntaxFactory.ParseStatement($"{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName, "base", $"() => {GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName, setSemicolon: false)}")}"));
 				}
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null &&
@@ -710,16 +716,16 @@ $@"lock(this.{SyncRootPropertyName})
 
 		if (this.{IsSynchronizedPropertyName})
 		{{
-			{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)};
+			{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)}
 
 			this.{IsSynchronizedPropertyName} = false;
 		}}
 
-		{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)};
+		{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 
-		{String.Join("\n", Pulls.Select(s => s.ToFullString()))}
+		{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}
 
-		{String.Join("\n", PullAssignments.Select(s => s.ToFullString()))}
+		{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}
 	}}
 	this.{IsSynchronizedPropertyName} = true;
 }}"))
@@ -762,18 +768,18 @@ $@"if({InvokeMethodMethodParameterName} != null)
 
 			if (this.{IsSynchronizedPropertyName})
 			{{
-				{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)};
+				{GetRevertableSyncUnlockedMethodCall(DesynchronizeUnlockedMethodName)}
 
 				this.{IsSynchronizedPropertyName} = false;
 			}}
 
 			{InvokeMethodMethodParameterName}.Invoke();
 
-			{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)};
+			{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 
-			{String.Join("\n", Pulls.Select(s => s.ToFullString()))}
+			{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}
 
-			{String.Join("\n", PullAssignments.Select(s => s.ToFullString()))}
+			{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}
 
 			this.{IsSynchronizedPropertyName} = true;
 		}}
@@ -997,10 +1003,11 @@ $@"if({InvokeMethodMethodParameterName} != null)
 				return statement;
 			}
 
-			private String GetRevertableSyncUnlockedMethodCall(String methodName, String instance = "this", String onRevert = "null")
+			private String GetRevertableSyncUnlockedMethodCall(String methodName, String instance = "this", String onRevert = "null", Boolean setSemicolon = true)
 			{
-				return
-$"{instance}.{methodName}({LocalTypeIdName}:{LocalTypeIdName}, {LocalSourceInstanceIdName}:{LocalSourceInstanceIdName}, {LocalInstanceIdName}:{LocalInstanceIdName}, {LocalAuthorityName}:{LocalAuthorityName}, {LocalOnRevertName}:{onRevert})";
+				var statement = $"{instance}.{methodName}({LocalTypeIdName}:{LocalTypeIdName}, {LocalSourceInstanceIdName}:{LocalSourceInstanceIdName}, {LocalInstanceIdName}:{LocalInstanceIdName}, {LocalAuthorityName}:{LocalAuthorityName}, {LocalOnRevertName}:{onRevert}){(setSemicolon?";":String.Empty)}";
+
+				return statement;
 			}
 
 			private PropertyDeclarationSyntax GetIdProperty(PropertyDeclarationSyntax declared, PropertyDeclarationSyntax member, String name, String summary)

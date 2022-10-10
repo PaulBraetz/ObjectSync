@@ -221,12 +221,12 @@ return this.{ContextField.Declaration.Variables.Single().Identifier};"))));
 
 			private PropertyDeclarationSyntax GetGeneratedPropertyDeclaration(FieldDeclarationSyntax field)
 			{
-				var comment = String.Join("\n", field.DescendantTrivia()
+				var comment = String.Join("\r\r\n", field.DescendantTrivia()
 					.Where(t => t.IsKind(SyntaxKind.SingleLineCommentTrivia)));
 
 				comment = String.IsNullOrEmpty(comment) ?
 					comment :
-					$"{comment}\n";
+					$"{comment}\r\r\n";
 
 				var fieldType = _parent.GetFieldType(field);
 				var fieldName = _parent.GetFieldName(field);
@@ -248,7 +248,9 @@ return this.{ContextField.Declaration.Variables.Single().Identifier};"))));
 						SyntaxFactory.ParseStatement(
 $@"if(this.{ContextPropertyName}.{_parent.Context.IsSynchronizedPropertyName})
 {{
+#nullable disable
 	this.{ContextPropertyName}.{_parent.Context.PushMethodName}<{fieldType}>(""{fieldName}"", value);
+#nullable restore
 }}"));
 				}
 				else
@@ -261,7 +263,9 @@ $@"this.{ContextPropertyName}.{_parent.Context.InvokeMethodName}((isSynchronized
 	{setStatement}
 	if(isSynchronized)
 	{{		
+#nullable disable
 		this.{ContextPropertyName}.{_parent.Context.PushMethodName}<{fieldType}>(""{fieldName}"", value);
+#nullable restore
 	}}
 }});"));
 				}

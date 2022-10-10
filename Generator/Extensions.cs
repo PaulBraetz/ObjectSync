@@ -62,9 +62,9 @@ namespace ObjectSync.Generator
 		}
 		public static SyntaxTriviaList AsLeadingTrivia(this String text)
 		{
-			if (!text.EndsWith("\n"))
+			if (!text.EndsWith("\r\n"))
 			{
-				text += "\n";
+				text += "\r\n";
 			}
 
 			var comments = SyntaxFactory.ParseLeadingTrivia(text);
