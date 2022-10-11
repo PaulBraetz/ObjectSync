@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ObjectSync.Attributes;
 using ObjectSync.Synchronization;
 using RhoMicro.CodeAnalysis;
 using System;
@@ -23,31 +24,35 @@ namespace ObjectSync.Generator
 				GeneratedAttributes.Synchronized.GeneratedType,
 				GeneratedAttributes.SynchronizationAuthority.GeneratedType,
 				GeneratedAttributes.SynchronizationTarget.GeneratedType,
+				GeneratedAttributes.TypeExportConfiguration.GeneratedType,
 				GeneratedAttributes.Attributes
 			}.ToImmutableList();
 		private static IEnumerable<GeneratedSource> AttributeSources = AttributeTypes.Select(t => t.Source).ToImmutableList();
 
-		private static IEnumerable<GeneratedType> SynchronizationClassesTypes = new[]
-			{
-				GeneratedSynchronizationClasses.ISynchronizationAuthority,
-				GeneratedSynchronizationClasses.StaticSynchronizationAuthority,
-				GeneratedSynchronizationClasses.SynchronizationAuthorityBase,
-				GeneratedSynchronizationClasses.SyncInfo,
-				GeneratedSynchronizationClasses.Initializable
-			}.ToImmutableList();
-		private static IEnumerable<GeneratedSource> SynchronizationClassesSources = SynchronizationClassesTypes.Select(t => t.Source).ToImmutableList();
-
 		public void Execute(GeneratorExecutionContext context)
 		{
-			if (!(context.SyntaxContextReceiver is SyntaxReceiver receiver))
+			if (!(context.SyntaxContextReceiver is ObjectSyncSyntaxContextReceiver objectSyncReceiver))
 			{
 				return;
 			}
 
-			var sources = receiver.Types.Select(t => SourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree)));
+			var sources = objectSyncReceiver.Types
+				.Select(t => SourceFactory.GetSource(t, context.Compilation.GetSemanticModel(t.SyntaxTree), objectSyncReceiver.Config))
+				.Concat(
+					new Func<TypeExportConfigurationAttribute, GeneratedType>[]
+					{
+						GeneratedSynchronizationClasses.GetISynchronizationAuthority,
+						GeneratedSynchronizationClasses.GetStaticSynchronizationAuthority,
+						GeneratedSynchronizationClasses.GetSynchronizationAuthorityBase,
+						GeneratedSynchronizationClasses.GetSyncInfo,
+						GeneratedSynchronizationClasses.GetInitializable
+					}
+					.Select(f => f.Invoke(objectSyncReceiver.Config))
+					.Select(t => t.Source))
+				.Where(s => s != default);
 
 #if DEBUG
-			Console.WriteLine(String.Join("\r\n\r\n", sources));
+			Console.WriteLine(String.Join("\n\n", sources));
 			Console.ReadLine();
 #endif
 
@@ -57,18 +62,17 @@ namespace ObjectSync.Generator
 		public void Initialize(GeneratorInitializationContext context)
 		{
 			context.RegisterForPostInitialization(c =>
-			{
-				c.AddSources(AttributeSources);
-				c.AddSources(SynchronizationClassesSources);
-			});
+				{
+					c.AddSources(AttributeSources);
+				});
 
-			context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
+			context.RegisterForSyntaxNotifications(() => new ObjectSyncSyntaxContextReceiver());
 		}
 
-		private sealed class SyntaxReceiver : ISyntaxContextReceiver
+		private sealed class ObjectSyncSyntaxContextReceiver : ISyntaxContextReceiver
 		{
 			public HashSet<BaseTypeDeclarationSyntax> Types { get; } = new HashSet<BaseTypeDeclarationSyntax>();
-
+			public TypeExportConfigurationAttribute Config { get; private set; } = new TypeExportConfigurationAttribute();
 			public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
 			{
 				if (context.Node is BaseTypeDeclarationSyntax ||
@@ -103,6 +107,11 @@ namespace ObjectSync.Generator
 
 						node = node.Parent;
 					} while (node != null);
+				}
+				else if (context.Node is AttributeSyntax attribute &&
+					GeneratedAttributes.TypeExportConfiguration.Factory.TryBuild(attribute, context.SemanticModel, out var config))
+				{
+					Config = config;
 				}
 			}
 		}

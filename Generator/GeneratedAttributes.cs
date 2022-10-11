@@ -5,7 +5,7 @@ using System;
 
 namespace ObjectSync.Attributes
 {
-	public static class Attributes
+	internal static class Attributes
 	{
 		/// <summary>
 		/// Enumeration for common accessibility combinations. Taken from https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.accessibility?view=roslyn-dotnet-4.3.0
@@ -61,18 +61,18 @@ namespace ObjectSync.Attributes
 	}
 
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class TypeIdAttribute : Attribute
+	internal sealed class TypeIdAttribute : Attribute
 	{
 
 	}
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class InstanceIdAttribute : Attribute
+	internal sealed class InstanceIdAttribute : Attribute
 	{
 
 	}
 
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class SourceInstanceIdAttribute : Attribute
+	internal sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
@@ -96,12 +96,12 @@ namespace ObjectSync.Attributes
 	/// </para>
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class SynchronizationAuthorityAttribute : Attribute
+	internal sealed class SynchronizationAuthorityAttribute : Attribute
 	{
 
 	}
 	[AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class SynchronizedAttribute : Attribute
+	internal sealed class SynchronizedAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
@@ -109,7 +109,7 @@ namespace ObjectSync.Attributes
 		public ObjectSync.Attributes.Attributes.Accessibility PropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Public;
 	}
 	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
-	public sealed class SynchronizationTargetAttribute : Attribute
+	internal sealed class SynchronizationTargetAttribute : Attribute
 	{
 		private String contextPropertyName = "SynchronizationContext";
 		private ObjectSync.Attributes.Attributes.Accessibility contextTypeConstructorAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Public;
@@ -153,19 +153,51 @@ namespace ObjectSync.Attributes
 		public ObjectSync.Attributes.Attributes.Modifier ContextPropertyModifier { get; set; } = ObjectSync.Attributes.Attributes.Modifier.NotApplicable;
 		public ObjectSync.Attributes.Attributes.Accessibility ContextPropertyAccessibility { get; set; } = ObjectSync.Attributes.Attributes.Accessibility.Protected;
 	}
+	[AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
+	internal sealed class TypeExportConfigurationAttribute : Attribute
+	{
+		public enum ExportConfig
+		{
+			Generate,
+			Export,
+			Import
+		}
+		public ExportConfig Type { get; set; }
+		public string RootNamespace { get; set; }
+	}
 }
 
 namespace ObjectSync.Generator
 {
 	internal static class GeneratedAttributes
 	{
+		#region TypeExportConfiguration
+		private const String TypeExportConfiguration_SOURCE = @"using System;
+
+namespace ObjectSync.Attributes
+{
+	[AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
+	internal sealed class TypeExportConfigurationAttribute : Attribute
+	{
+		public enum ExportConfig
+		{
+			Generate,
+			Export,
+			Import
+		}
+		public ExportConfig Type { get; set; }
+		public string RootNamespace { get; set; }
+	}
+}";
+		public static AttributeAnalysisUnit<TypeExportConfigurationAttribute> TypeExportConfiguration { get; } = new AttributeAnalysisUnit<TypeExportConfigurationAttribute>(TypeExportConfiguration_SOURCE);
+		#endregion
 		#region InstanceId
 		private const String INSTANCE_ID_SOURCE = @"using System;
 
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class InstanceIdAttribute : Attribute
+	internal sealed class InstanceIdAttribute : Attribute
 	{
 
 	}
@@ -197,7 +229,7 @@ namespace ObjectSync.Attributes
 	/// </para>
 	/// </summary>
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class SourceInstanceIdAttribute : Attribute
+	internal sealed class SourceInstanceIdAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 	}
@@ -211,7 +243,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class SynchronizationAuthorityAttribute : Attribute
+	internal sealed class SynchronizationAuthorityAttribute : Attribute
 	{
 
 	}
@@ -225,7 +257,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {	
 	[AttributeUsage(AttributeTargets.Class, Inherited = false)]
-	public sealed class SynchronizationTargetAttribute : Attribute
+	internal sealed class SynchronizationTargetAttribute : Attribute
 	{
 		private String contextPropertyName = ""SynchronizationContext"";
 		private ObjectSync.Attributes.Attributes.Accessibility contextTypeConstructorAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Public;
@@ -279,7 +311,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
     [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-	public sealed class SynchronizedAttribute : Attribute
+	internal sealed class SynchronizedAttribute : Attribute
 	{
 		public string PropertyName { get; set; }
 		public bool Fast { get; set; }
@@ -296,7 +328,7 @@ namespace ObjectSync.Attributes
 namespace ObjectSync.Attributes
 {
 	[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-	public sealed class TypeIdAttribute : Attribute
+	internal sealed class TypeIdAttribute : Attribute
 	{
 
 	}
@@ -309,7 +341,7 @@ namespace ObjectSync.Attributes
 
 namespace ObjectSync.Attributes
 {
-	public static class Attributes
+	internal static class Attributes
 	{		
 		/// <summary>
 		/// Enumeration for common accessibility combinations. Taken from https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.accessibility?view=roslyn-dotnet-4.3.0

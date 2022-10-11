@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using ObjectSync.Attributes;
+using RhoMicro.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +30,9 @@ namespace ObjectSync.Generator
 					kinds = new SyntaxKind[] { SyntaxKind.InternalKeyword, SyntaxKind.ProtectedKeyword };
 					break;
 				default:
-					kinds = new SyntaxKind[] { notApplicable };
+					kinds = notApplicable != SyntaxKind.None ?
+						new SyntaxKind[] { notApplicable } :
+						Array.Empty<SyntaxKind>();
 					break;
 			}
 
@@ -54,7 +57,9 @@ namespace ObjectSync.Generator
 					kinds = new SyntaxKind[] { SyntaxKind.SealedKeyword, SyntaxKind.OverrideKeyword };
 					break;
 				default:
-					kinds = new SyntaxKind[] { notApplicable };
+					kinds = notApplicable != SyntaxKind.None ?
+						new SyntaxKind[] { notApplicable } :
+						Array.Empty<SyntaxKind>();
 					break;
 			}
 
@@ -70,6 +75,32 @@ namespace ObjectSync.Generator
 			var comments = SyntaxFactory.ParseLeadingTrivia(text);
 
 			return comments;
+		}
+		public static TypeIdentifier GetSynchronizationType<T>(this TypeExportConfigurationAttribute config)
+		{
+			return GetSynchronizationType(config, TypeIdentifierName.Create<T>());
+		}
+		public static TypeIdentifier GetSynchronizationType(this TypeExportConfigurationAttribute config, TypeIdentifierName name)
+		{
+			var @namespace = config.GetSynchronizationNamespace();
+			var identifier = TypeIdentifier.Create(name, @namespace);
+
+			return identifier;
+		}
+		public static Namespace GetSynchronizationNamespace(this TypeExportConfigurationAttribute config)
+		{
+			var @namespace = Namespace.Create();
+
+			if (!String.IsNullOrWhiteSpace(config.RootNamespace))
+			{
+				@namespace = @namespace.Append(config.RootNamespace);
+			}
+
+			@namespace = @namespace
+				.Append("ObjectSync")
+				.Append("Synchronization");
+
+			return @namespace;
 		}
 	}
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ObjectSync.Synchronization;
 using RhoMicro.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -145,7 +146,7 @@ namespace ObjectSync.Generator
 					if (_typeName == null)
 					{
 						var parts = _parent.Declared.TypeIdentifier.Name.Parts.ToArray();
-						int i = -1;
+						var i = -1;
 						for (; ++i < parts.Length - 1 && !(i < parts.Length - 2 && parts[i + 1].Kind == IdentifierPart.PartKind.GenericOpen);) { }
 
 						_typeName = $"{parts[i]}{TypeSuffix}";
@@ -573,7 +574,7 @@ namespace ObjectSync.Generator
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalAuthorityName))
 						.WithType(
-							_parent.ISynchronizationAuthorityIdentifier.AsSyntax()),
+							_parent.Declared.ExportConfig.GetSynchronizationType<ISynchronizationAuthority>().AsSyntax()),
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalOnRevertName))
 						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())));
@@ -670,7 +671,7 @@ namespace ObjectSync.Generator
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalAuthorityName))
 						.WithType(
-							_parent.ISynchronizationAuthorityIdentifier.AsSyntax()),
+							_parent.Declared.ExportConfig.GetSynchronizationType<ISynchronizationAuthority>().AsSyntax()),
 						SyntaxFactory.Parameter(
 							SyntaxFactory.Identifier(LocalOnRevertName))
 						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())));
@@ -871,7 +872,7 @@ $@"if({InvokeMethodMethodParameterName} != null)
 				if (_parent.Declared.Authority != null)
 				{
 					property = SyntaxFactory.PropertyDeclaration(
-							_parent.ISynchronizationAuthorityIdentifier.AsSyntax(),
+							_parent.Declared.ExportConfig.GetSynchronizationType<ISynchronizationAuthority>().AsSyntax(),
 							AuthorityPropertyName)
 						.AddAccessorListAccessors(
 							SyntaxFactory.AccessorDeclaration(

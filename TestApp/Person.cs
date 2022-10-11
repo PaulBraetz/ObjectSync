@@ -3,14 +3,18 @@ using ObjectSync.Attributes;
 
 namespace TestApp.Data.AnotherNamespace
 {
-	[SynchronizationTarget(ContextTypeAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Protected,
-						  ContextTypeIsSealed = false)]
-	public abstract partial class PersonBase
+	[SynchronizationTarget(
+		ContextTypeAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Protected,
+		ContextTypeIsSealed = false,
+		ContextPropertyAccessibility = Attributes.Accessibility.Protected,
+		ContextPropertyModifier = Attributes.Modifier.Virtual)]
+	internal abstract partial class PersonBase
 	{
 		public PersonBase()
 		{
 			_instanceCount++;
 			InstanceId = _instanceCount.ToString();
+			SynchronizationContext.Synchronize();
 		}
 
 		private static Int32 _instanceCount;
@@ -28,8 +32,12 @@ namespace TestApp.Data.AnotherNamespace
 		protected String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
 	}
 
-	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext),
-						   ContextTypeIsSealed = true)]
+	[SynchronizationTarget(
+		ContextTypeAccessibility = Attributes.Accessibility.Protected,
+		BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext),
+		ContextTypeIsSealed = true,
+		ContextPropertyAccessibility = Attributes.Accessibility.Protected,
+		ContextPropertyModifier = Attributes.Modifier.Override)]
 	internal sealed partial class Person : PersonBase
 	{
 		public Person(String name)

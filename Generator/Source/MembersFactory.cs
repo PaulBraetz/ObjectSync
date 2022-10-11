@@ -58,12 +58,12 @@ namespace ObjectSync.Generator
 					{
 						_contextField = SyntaxFactory.FieldDeclaration(
 							SyntaxFactory.VariableDeclaration(
-								SyntaxFactory.ParseTypeName($"{GeneratedSynchronizationClasses.Initializable.Identifier}<{_parent.Context.TypeName}>"))
+								SyntaxFactory.ParseTypeName($"{GeneratedSynchronizationClasses.GetInitializable(_parent.Declared.ExportConfig).Identifier}<{_parent.Context.TypeName}>"))
 							.AddVariables(
 								SyntaxFactory.VariableDeclarator(ContextFieldName)
 								.WithInitializer(
 									SyntaxFactory.EqualsValueClause(
-										SyntaxFactory.ParseExpression($"new {GeneratedSynchronizationClasses.Initializable.Identifier}<{_parent.Context.TypeName}>()")))))
+										SyntaxFactory.ParseExpression($"new {GeneratedSynchronizationClasses.GetInitializable(_parent.Declared.ExportConfig).Identifier}<{_parent.Context.TypeName}>()")))))
 							.AddModifiers(
 								SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
 								SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword))
@@ -80,14 +80,21 @@ namespace ObjectSync.Generator
 			{
 				get
 				{
-					return _context ?? (_context = SyntaxFactory.PropertyDeclaration(_parent.Context.TypeSyntax, ContextPropertyName)
-							.AddModifiers(
-								SyntaxFactory.Token(
-									SyntaxKind.PrivateKeyword))
-							.AddAccessorListAccessors(
-								SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
-								.AddBodyStatements(
-									SyntaxFactory.ParseStatement(
+					return _context ??
+						(_context = SyntaxFactory.PropertyDeclaration(
+							_parent.Context.TypeSyntax,
+							_parent.Declared.SynchronizationTargetAttribute.ContextPropertyName)
+						.AddModifiers(
+							_parent.Declared.SynchronizationTargetAttribute.ContextPropertyAccessibility
+							.AsSyntax()
+							.Concat(
+								_parent.Declared.SynchronizationTargetAttribute.ContextPropertyModifier.AsSyntax())
+							.Select(SyntaxFactory.Token)
+							.ToArray())
+						.AddAccessorListAccessors(
+							SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
+						.AddBodyStatements(
+							SyntaxFactory.ParseStatement(
 $@"if(!this.{ContextField.Declaration.Variables.Single().Identifier}.IsAssigned)
 {{
 	this.{ContextField.Declaration.Variables.Single().Identifier}.Assign(new {_parent.Context.TypeName}(this));

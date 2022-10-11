@@ -7,6 +7,7 @@ using System.Threading;
 using RhoMicro.CodeAnalysis;
 using ObjectSync.Synchronization;
 using System.Runtime.InteropServices;
+using ObjectSync.Attributes;
 
 namespace ObjectSync.Synchronization
 {
@@ -279,8 +280,11 @@ namespace ObjectSync.Generator
 {
 	internal static class GeneratedSynchronizationClasses
 	{
+		private const String OBJECT_SYNC_NAMESPACE = "ObjectSync";
+		private const Boolean DEFAULT_EXPORT_TYPE = false;
+
 		#region Initializable
-		private const string Initializable_SOURCE =
+		private const string Initializable_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -288,9 +292,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace ObjectSync.Synchronization
+namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	public sealed class Initializable<T> : IEquatable<Initializable<T>>
+	" + ACCESSIBILITY_PLACEHOLDER + @" sealed class Initializable<T> : IEquatable<Initializable<T>>
 	{
 		public Boolean IsAssigned => _isAssigned == 1;
 		public T Value { get; private set; }
@@ -308,7 +312,7 @@ namespace ObjectSync.Synchronization
 
 		public void Assign(T value)
 		{
-			if (System.Threading.Interlocked.CompareExchange(ref _isAssigned, 1, 0) == 1)
+			if (Interlocked.CompareExchange(ref _isAssigned, 1, 0) == 1)
 			{
 				throw new InvalidOperationException(""Cannot initialize multiple times."");
 			}
@@ -352,18 +356,16 @@ namespace ObjectSync.Synchronization
 		}
 	}
 }";
-		public static GeneratedType Initializable { get; } = new GeneratedType(
-			TypeIdentifier.Create(
+		public static GeneratedType GetInitializable(TypeExportConfigurationAttribute config)
+			=> GetGeneratedType(
+				config,
+				Initializable_SOURCE_TEMPLATE,
 				TypeIdentifierName.Create()
-					.AppendNamePart("Initializable"),
-				Namespace.Create()
-					.Append("ObjectSync")
-					.Append("Synchronization")),
-			new GeneratedSource(Initializable_SOURCE, "ObjectSync.Synchronization.Initializable"));
+					.AppendNamePart("Initializable"));
 		#endregion
 
 		#region ISynchronizationAuthority
-		private const string ISynchronizationAuthority_SOURCE =
+		private const string ISynchronizationAuthority_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -371,9 +373,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace ObjectSync.Synchronization
+namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	public interface ISynchronizationAuthority
+	" + ACCESSIBILITY_PLACEHOLDER + @" interface ISynchronizationAuthority
 	{
 		TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId);
 		void Push<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, TProperty value);
@@ -381,11 +383,12 @@ namespace ObjectSync.Synchronization
 		void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId);
 	}
 }";
-		public static GeneratedType ISynchronizationAuthority { get; } = new GeneratedType(TypeIdentifier.Create<ISynchronizationAuthority>(), ISynchronizationAuthority_SOURCE);
+		public static GeneratedType GetISynchronizationAuthority(TypeExportConfigurationAttribute config)
+			=> GetGeneratedType<ISynchronizationAuthority>(config, ISynchronizationAuthority_SOURCE_TEMPLATE);
 		#endregion
 
 		#region StaticSynchronizationAuthority
-		private const string StaticSynchronizationAuthority_SOURCE =
+		private const string StaticSynchronizationAuthority_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -393,9 +396,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace ObjectSync.Synchronization
+namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
+	" + ACCESSIBILITY_PLACEHOLDER + @" class StaticSynchronizationAuthority : SynchronizationAuthorityBase
 	{
 		private class FieldStateContextBase
 		{
@@ -517,11 +520,12 @@ namespace ObjectSync.Synchronization
 		}
 	}
 }";
-		public static GeneratedType StaticSynchronizationAuthority { get; } = new GeneratedType(TypeIdentifier.Create<StaticSynchronizationAuthority>(), StaticSynchronizationAuthority_SOURCE);
+		public static GeneratedType GetStaticSynchronizationAuthority(TypeExportConfigurationAttribute config)
+			=> GetGeneratedType<StaticSynchronizationAuthority>(config, StaticSynchronizationAuthority_SOURCE_TEMPLATE);
 		#endregion
 
 		#region SynchronizationAuthorityBase
-		private const string SynchronizationAuthorityBase_SOURCE =
+		private const string SynchronizationAuthorityBase_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -529,9 +533,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace ObjectSync.Synchronization
+namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	public abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
+	" + ACCESSIBILITY_PLACEHOLDER + @" abstract class SynchronizationAuthorityBase : ISynchronizationAuthority
 	{
 		protected abstract TProperty Pull<TProperty>(SyncInfo syncInfo);
 		public TProperty Pull<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId)
@@ -558,11 +562,12 @@ namespace ObjectSync.Synchronization
 		}
 	}
 }";
-		public static GeneratedType SynchronizationAuthorityBase { get; } = new GeneratedType(TypeIdentifier.Create<SynchronizationAuthorityBase>(), SynchronizationAuthorityBase_SOURCE);
+		public static GeneratedType GetSynchronizationAuthorityBase(TypeExportConfigurationAttribute config)
+			=> GetGeneratedType<SynchronizationAuthorityBase>(config, SynchronizationAuthorityBase_SOURCE_TEMPLATE);
 		#endregion
 
 		#region SyncInfo
-		private const string SyncInfo_SOURCE =
+		private const string SyncInfo_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -570,9 +575,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace ObjectSync.Synchronization
+namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	public readonly struct SyncInfo : IEquatable<SyncInfo>
+	" + ACCESSIBILITY_PLACEHOLDER + @" readonly struct SyncInfo : IEquatable<SyncInfo>
 	{
 		public readonly String TypeId;
 		public readonly String FieldName;
@@ -621,7 +626,45 @@ namespace ObjectSync.Synchronization
 		}
 	}
 }";
-		public static GeneratedType SyncInfo { get; } = new GeneratedType(TypeIdentifier.Create<SyncInfo>(), SyncInfo_SOURCE);
+		private const String NAMESPACE_PLACEHOLDER = "{NAMESPACE}";
+		private const String ACCESSIBILITY_PLACEHOLDER = "{ACCESSIBILITY}";
+
+		public static GeneratedType GetSyncInfo(TypeExportConfigurationAttribute config)
+			=> GetGeneratedType<SyncInfo>(config, SyncInfo_SOURCE_TEMPLATE);
 		#endregion
+
+		private static String FormatTemplate(TypeExportConfigurationAttribute config, String template)
+		{
+			if (config.Type == TypeExportConfigurationAttribute.ExportConfig.Import)
+			{
+				return String.Empty;
+			}
+
+			var rootNamespace = config.GetSynchronizationNamespace();
+			var accessibility = config.Type == TypeExportConfigurationAttribute.ExportConfig.Export ? "public" : "internal";
+			var result = template.Replace(NAMESPACE_PLACEHOLDER, rootNamespace).Replace(ACCESSIBILITY_PLACEHOLDER, accessibility);
+
+			return result;
+		}
+		private static GeneratedType GetGeneratedType<T>(TypeExportConfigurationAttribute config, String template)
+		{
+			var name = TypeIdentifierName.Create<T>();
+			var generatedType = GetGeneratedType(config, template, name);
+
+			return generatedType;
+		}
+		private static GeneratedType GetGeneratedType(TypeExportConfigurationAttribute config, String template, TypeIdentifierName name)
+		{
+			var source = FormatTemplate(config, template);
+
+			var identifier = config.GetSynchronizationType(name);
+			var generatedSource = config.Type == TypeExportConfigurationAttribute.ExportConfig.Import ?
+				default :
+				new GeneratedSource(source, identifier.ToNonGenericString());
+
+			var generatedType = new GeneratedType(identifier, generatedSource);
+
+			return generatedType;
+		}
 	}
 }

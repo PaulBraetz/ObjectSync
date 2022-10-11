@@ -30,8 +30,6 @@ namespace ObjectSync.Generator
 		private IAttributeFactory<SynchronizationAuthorityAttribute> SynchronizationAuthorityAttributeFactory => GeneratedAttributes.SynchronizationAuthority.Factory;
 		private IAttributeFactory<SynchronizationTargetAttribute> SynchronizationTargetAttributeFactory => GeneratedAttributes.SynchronizationTarget.Factory;
 		private IAttributeFactory<SynchronizedAttribute> SynchronizedAttributeFactory => GeneratedAttributes.Synchronized.Factory;
-
-		private TypeIdentifier ISynchronizationAuthorityIdentifier => GeneratedSynchronizationClasses.ISynchronizationAuthority.Identifier;
 		#endregion
 
 		private DeclaredInfo Declared { get; }
@@ -40,16 +38,16 @@ namespace ObjectSync.Generator
 
 		private Optional<GeneratedSource> _generatedSource;
 
-		public SourceFactory(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel)
+		public SourceFactory(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel, TypeExportConfigurationAttribute exportConfig)
 		{
-			Declared = new DeclaredInfo(synchronizedType, semanticModel, this);
+			Declared = new DeclaredInfo(synchronizedType, semanticModel, exportConfig, this);
 			Members = new MembersFactory(this);
 			Context = new ContextFactory(this);
 		}
 
-		public static GeneratedSource GetSource(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel)
+		public static GeneratedSource GetSource(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel, TypeExportConfigurationAttribute exportConfig)
 		{
-			var source = new SourceFactory(synchronizedType, semanticModel).GetSource();
+			var source = new SourceFactory(synchronizedType, semanticModel, exportConfig).GetSource();
 
 			return source;
 		}

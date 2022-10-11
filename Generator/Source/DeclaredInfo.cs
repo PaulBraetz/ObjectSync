@@ -15,6 +15,7 @@ namespace ObjectSync.Generator
 			private readonly SourceFactory _parent;
 
 			#region Properties
+			public TypeExportConfigurationAttribute ExportConfig { get; }
 			public BaseTypeDeclarationSyntax Type { get; }
 			public SemanticModel SemanticModel { get; }
 
@@ -164,8 +165,9 @@ namespace ObjectSync.Generator
 			}
 			#endregion
 
-			public DeclaredInfo(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel, SourceFactory parent)
+			public DeclaredInfo(BaseTypeDeclarationSyntax synchronizedType, SemanticModel semanticModel, TypeExportConfigurationAttribute exportConfig, SourceFactory parent)
 			{
+				this.ExportConfig = exportConfig ?? throw new ArgumentNullException(nameof(exportConfig));
 				this.Type = synchronizedType ?? throw new ArgumentNullException(nameof(synchronizedType));
 				this.SemanticModel = semanticModel ?? throw new ArgumentNullException(nameof(semanticModel));
 				this._parent = parent ?? throw new ArgumentNullException(nameof(parent));
