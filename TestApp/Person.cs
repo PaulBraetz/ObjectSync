@@ -15,7 +15,6 @@ namespace TestApp.Data.AnotherNamespace
 
 		private static Int32 _instanceCount;
 
-
 		[SynchronizationAuthority]
 		protected ISynchronizationAuthority Authority { get; } = new MySynchronizationAuthority();
 

@@ -19,7 +19,7 @@ namespace Tests
 
 		public void Synchronize(SampleEntity<T> other)
 		{
-			
+
 		}
 	}
 	[TestClass]

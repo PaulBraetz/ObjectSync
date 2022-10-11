@@ -138,7 +138,22 @@ namespace ObjectSync.Generator
 
 			#region Properties
 			private String _typeName;
-			public String TypeName => _typeName ?? (_typeName = $"{_parent.Declared.TypeIdentifier.Name.Parts.Last()}{TypeSuffix}");
+			public String TypeName
+			{
+				get
+				{
+					if (_typeName == null)
+					{
+						var parts = _parent.Declared.TypeIdentifier.Name.Parts.ToArray();
+						int i = -1;
+						for(;++i < parts.Length-1 && !(i < parts.Length - 2 && parts[i + 1].Kind == IdentifierPart.PartKind.GenericOpen);) { }
+						
+						_typeName = $"{parts[i]}{TypeSuffix}";
+					}
+
+					return _typeName;
+				}
+			}
 
 			private TypeSyntax _typeSyntax;
 			public TypeSyntax TypeSyntax => _typeSyntax ?? (_typeSyntax = SyntaxFactory.ParseTypeName(TypeName));
@@ -1005,7 +1020,7 @@ $@"if({InvokeMethodMethodParameterName} != null)
 
 			private String GetRevertableSyncUnlockedMethodCall(String methodName, String instance = "this", String onRevert = "null", Boolean setSemicolon = true)
 			{
-				var statement = $"{instance}.{methodName}({LocalTypeIdName}:{LocalTypeIdName}, {LocalSourceInstanceIdName}:{LocalSourceInstanceIdName}, {LocalInstanceIdName}:{LocalInstanceIdName}, {LocalAuthorityName}:{LocalAuthorityName}, {LocalOnRevertName}:{onRevert}){(setSemicolon?";":String.Empty)}";
+				var statement = $"{instance}.{methodName}({LocalTypeIdName}:{LocalTypeIdName}, {LocalSourceInstanceIdName}:{LocalSourceInstanceIdName}, {LocalInstanceIdName}:{LocalInstanceIdName}, {LocalAuthorityName}:{LocalAuthorityName}, {LocalOnRevertName}:{onRevert}){(setSemicolon ? ";" : String.Empty)}";
 
 				return statement;
 			}
