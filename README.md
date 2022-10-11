@@ -11,15 +11,17 @@ This analyzer is a work in progress.
 
 ## Versioning ##
 
-The most recent version of ObjectSync is 1.0.5.
+The most recent version of ObjectSync is 1.0.6.
+
 ObjectSync uses [Semantic Versioning 2.0.0](https://semver.org/).
+
 ## Installation ##
 
 Nuget Gallery: https://www.nuget.org/packages/RhoMicro.ObjectSync
 
-Package Manager: `Install-Package RhoMicro.ObjectSync -Version 1.0.5`
+Package Manager: `Install-Package RhoMicro.ObjectSync -Version 1.0.6`
 
-.Net CLI: `dotnet add package RhoMicro.ObjectSync --version 1.0.5`
+.Net CLI: `dotnet add package RhoMicro.ObjectSync --version 1.0.6`
 ## Quick Start ##
 
 ObjectSync works by generating a partial class for types annotated with the `SynchronizationTarget` attribute. It will generate a nested context type that manages synchronization state and logic for instances of your type. 
