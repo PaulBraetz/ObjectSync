@@ -137,7 +137,29 @@ instance2.SynchronizedValue = "No Value";
 Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
 Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
 Console.WriteLine("Synchronizing instance2 to instance1...");
+
 instance2.Synchronize(instance1);
 Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
 Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
+
+instance1.SynchronizedValue = "New Value";
+Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
+Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
+
+instance2.SynchronizedValue = "Another Value";
+Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
+Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
+```
+
+This will result in the following output:
+```
+Value for Instance1: Value
+Value for Instance2: No Value
+Synchronizing instance2 to instance1...
+Value for Instance1: Value
+Value for Instance2: Value
+Value for Instance1: New Value
+Value for Instance2: New Value
+Value for Instance1: Another Value
+Value for Instance2: Another Value
 ```
