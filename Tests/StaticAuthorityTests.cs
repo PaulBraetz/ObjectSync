@@ -9,15 +9,18 @@ namespace Tests
 		public SampleAuthority() { }
 	}
 	[SynchronizationTarget]
-	internal sealed partial class SampleEntity<T>
+	internal sealed partial class SampleEntity<T1, T2, T3>
 	{
 		[SynchronizationAuthority]
 		private ISynchronizationAuthority Authority { get; } = new SampleAuthority();
 
 		[Synchronized]
-		private T? _value;
-
-		public void Synchronize(SampleEntity<T> other)
+		private T1? _value1;
+		[Synchronized]
+		private T2? _value2;
+		[Synchronized]
+		private T3? _value3;
+		public void Synchronize(SampleEntity<T1, T2, T3> other)
 		{
 
 		}
@@ -89,7 +92,7 @@ namespace Tests
 		private void SubscribePush<T>(Func<Int32, T> rng, Int32 count = 10000)
 		{
 			var entities = Enumerable.Range(0, 100)
-				.Select(i => new SampleEntity<T>());
+				.Select(i => new SampleEntity<T, T, T>());
 
 
 
