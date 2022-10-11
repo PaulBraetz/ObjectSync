@@ -64,7 +64,7 @@ namespace ObjectSync.Generator
 				{
 					var source = GetNamespaceDeclaration();
 
-					_generatedSource = new GeneratedSource(source, name);
+					_generatedSource = new GeneratedSource(source, name.ToNonGenericString());
 				}
 				catch (Exception ex)
 				{
