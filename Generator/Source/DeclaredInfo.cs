@@ -171,6 +171,5 @@ namespace ObjectSync.Generator
 				this._parent = parent ?? throw new ArgumentNullException(nameof(parent));
 			}
 		}
-
 	}
 }
