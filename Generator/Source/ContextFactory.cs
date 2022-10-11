@@ -146,8 +146,8 @@ namespace ObjectSync.Generator
 					{
 						var parts = _parent.Declared.TypeIdentifier.Name.Parts.ToArray();
 						int i = -1;
-						for(;++i < parts.Length-1 && !(i < parts.Length - 2 && parts[i + 1].Kind == IdentifierPart.PartKind.GenericOpen);) { }
-						
+						for (; ++i < parts.Length - 1 && !(i < parts.Length - 2 && parts[i + 1].Kind == IdentifierPart.PartKind.GenericOpen);) { }
+
 						_typeName = $"{parts[i]}{TypeSuffix}";
 					}
 
@@ -297,8 +297,6 @@ namespace ObjectSync.Generator
 						.WithLeadingTrivia(SyntaxFactory.ParseLeadingTrivia("#nullable disable\r\n"))
 						.WithTrailingTrivia(SyntaxFactory.ParseLeadingTrivia("\r\n#nullable restore"));
 
-				var t = contextTypeDeclaration.NormalizeWhitespace().ToFullString();
-
 				return contextTypeDeclaration;
 			}
 			public MemberDeclarationSyntax[] GetMembers()
@@ -370,8 +368,8 @@ namespace ObjectSync.Generator
 
 					property = SyntaxFactory.PropertyDeclaration(_parent.Declared.TypeSyntax, InstancePropertyName)
 						.AddModifiers(SyntaxFactory.Token(
-							_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed?
-							SyntaxKind.PrivateKeyword:
+							_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed ?
+							SyntaxKind.PrivateKeyword :
 							SyntaxKind.ProtectedKeyword))
 						.AddAccessorListAccessors(
 							SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
@@ -468,11 +466,11 @@ namespace ObjectSync.Generator
 							SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
 							.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))
 						.AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword))
-						.WithLeadingTrivia(SyncRootSummary.AsLeadingTrivia())
 						.WithInitializer(
 							SyntaxFactory.EqualsValueClause(
 								SyntaxFactory.ParseExpression($"new {TypeIdentifier.Create<Object>()}()")))
-						.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+						.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+						.WithLeadingTrivia(SyncRootSummary.AsLeadingTrivia());
 				}
 				else
 				{
@@ -581,8 +579,7 @@ namespace ObjectSync.Generator
 						.WithType(SyntaxFactory.ParseTypeName(TypeIdentifier.Create<Action>())));
 
 				method = method
-					.AddBodyStatements(RevertableUnsubscriptions)
-					.WithLeadingTrivia(DesynchronizeUnlockedMethodSummary.AsLeadingTrivia());
+					.AddBodyStatements(RevertableUnsubscriptions);
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName != null)
 				{
@@ -608,6 +605,8 @@ namespace ObjectSync.Generator
 							SyntaxKind.VirtualKeyword :
 							SyntaxKind.OverrideKeyword));
 				}
+
+				method = method.WithLeadingTrivia(DesynchronizeUnlockedMethodSummary.AsLeadingTrivia());
 
 				return method;
 			}
@@ -680,8 +679,7 @@ namespace ObjectSync.Generator
 					.AddBodyStatements(RevertableSubscriptions)
 					.AddBodyStatements(
 						SyntaxFactory.ParseStatement($@"{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}"),
-						SyntaxFactory.ParseStatement($"{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}"))
-					.WithLeadingTrivia(SynchronizeUnlockedMethodSummary.AsLeadingTrivia());
+						SyntaxFactory.ParseStatement($"{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}"));
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName != null)
 				{
@@ -707,6 +705,8 @@ namespace ObjectSync.Generator
 							SyntaxKind.VirtualKeyword :
 							SyntaxKind.OverrideKeyword));
 				}
+
+				method = method.WithLeadingTrivia(SynchronizeUnlockedMethodSummary.AsLeadingTrivia());
 
 				return method;
 			}
@@ -1055,8 +1055,7 @@ $@"if({InvokeMethodMethodParameterName} != null)
 									_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed &&
 									_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null ?
 									SyntaxKind.PrivateKeyword :
-									SyntaxKind.ProtectedKeyword))
-							.WithLeadingTrivia(summary.AsLeadingTrivia());
+									SyntaxKind.ProtectedKeyword));
 				};
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName == null)
@@ -1085,6 +1084,8 @@ $@"if({InvokeMethodMethodParameterName} != null)
 						property = null;
 					}
 				}
+
+				property = property?.WithLeadingTrivia(summary.AsLeadingTrivia());
 
 				return property;
 			}
