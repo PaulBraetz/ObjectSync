@@ -27,10 +27,13 @@ ObjectSync works by generating a partial class for types annotated with the `Syn
 using ObjectSync.Attributes;
 using ObjectSync.Synchronization;
 
-[SynchronizationTarget]
-internal partial class MyType
+namespace MyNamespace
 {
+  [SynchronizationTarget]
+  internal partial class MyType
+  {
 
+  }
 }
 ```
 
@@ -40,11 +43,14 @@ Your type must provide a synchronization authority property for use by this cont
 using ObjectSync.Attributes;
 using ObjectSync.Synchronization;
 
-[SynchronizationTarget]
-internal partial class MyType
+namespace MyNamespace
 {
-  [SynchronizationAuthorityAttribute]
-  private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+  [SynchronizationTarget]
+  internal partial class MyType
+  {
+    [SynchronizationAuthorityAttribute]
+    private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+  }
 }
 ```
 
@@ -54,13 +60,16 @@ Now to actually define the data to be synchronized, annotate fields with the `Sy
 using ObjectSync.Attributes;
 using ObjectSync.Synchronization;
 
-[SynchronizationTarget]
-internal partial class MyType
+namespace MyNamespace
 {
-  [SynchronizationAuthorityAttribute]
-  private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
-  
-  [Synchronized]
-  private String _synchronizedValue;
+  [SynchronizationTarget]
+  internal partial class MyType
+  {
+    [SynchronizationAuthorityAttribute]
+    private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+
+    [Synchronized]
+    private String _synchronizedValue;
+  }
 }
 ```
