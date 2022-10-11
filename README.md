@@ -98,20 +98,20 @@ namespace MyNamespace
     private String _synchronizedValue;
     
     public void Synchronize(MyType to)
-		{
-			SynchronizationContext.DesynchronizeInvokeSynchronize(() =>
-			{
-				SourceInstanceId = to.SourceInstanceId;
-			});
-		}
+    {
+      SynchronizationContext.DesynchronizeInvokeSynchronize(() =>
+      {
+        SourceInstanceId = to.SourceInstanceId;
+      });
+    }
     
-		public void Desynchronize()
-		{
-			SynchronizationContext.DesynchronizeInvokeSynchronize(() =>
-			{
-				SourceInstanceId = Guid.NewGuid().ToString();
-			});
-		}
+    public void Desynchronize()
+    {
+      SynchronizationContext.DesynchronizeInvokeSynchronize(() =>
+      {
+        SourceInstanceId = Guid.NewGuid().ToString();
+      });
+    }
   }
 }
 ```
