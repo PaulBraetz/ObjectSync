@@ -122,3 +122,22 @@ namespace MyNamespace
 }
 ```
 **The `DesynchronizeInvokeSynchronize` method will first desynchronize the instance from its authority, then invoke the delegate provided and finally synchronize the instance again.**
+
+A simple demonstration can be seen using these top level statements:
+
+```cs
+using MyNamespace;
+
+var instance1 = new MyType();
+instance1.SynchronizedValue = "Value";
+
+var instance2 = new MyType();
+instance2.SynchronizedValue = "No Value";
+
+Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
+Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
+Console.WriteLine("Synchronizing instance2 to instance1...");
+instance2.Synchronize(instance1);
+Console.WriteLine($"Value for Instance1: {instance1.SynchronizedValue}");
+Console.WriteLine($"Value for Instance2: {instance2.SynchronizedValue}");
+```
