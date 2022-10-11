@@ -1,6 +1,7 @@
 # ObjectSync #
 
 ObjectSync is a C# analyzer that generates code for synchronizing properties.
+This analyzer is a work in progress.
 
 ## Features ##
 
