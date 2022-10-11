@@ -73,7 +73,7 @@ $@"/*
 An error occured while generating this source file for {Declared.TypeIdentifier}:
 {ex}
 */";
-					_generatedSource = new GeneratedSource(source, name);
+					_generatedSource = new GeneratedSource(source, name.ToNonGenericString());
 				}
 			}
 
