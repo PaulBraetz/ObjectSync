@@ -363,14 +363,16 @@ namespace ObjectSync.Generator
 					var setter = SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
 						.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 
-					if (_parent.Declared.SynchronizationTargetAttribute.ContextPropertyAccessibility != Attributes.Attributes.Accessibility.Private &&
-						_parent.Declared.SynchronizationTargetAttribute.ContextPropertyAccessibility != Attributes.Attributes.Accessibility.NotApplicable)
+					if (!_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed)
 					{
 						setter = setter.AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword));
 					}
 
 					property = SyntaxFactory.PropertyDeclaration(_parent.Declared.TypeSyntax, InstancePropertyName)
-						.AddModifiers(SyntaxFactory.Token(SyntaxKind.ProtectedKeyword))
+						.AddModifiers(SyntaxFactory.Token(
+							_parent.Declared.SynchronizationTargetAttribute.ContextTypeIsSealed?
+							SyntaxKind.PrivateKeyword:
+							SyntaxKind.ProtectedKeyword))
 						.AddAccessorListAccessors(
 							SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
 									.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),

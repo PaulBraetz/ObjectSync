@@ -4,7 +4,7 @@ using ObjectSync.Attributes;
 namespace TestApp.Data.AnotherNamespace
 {
 	[SynchronizationTarget(ContextTypeAccessibility = ObjectSync.Attributes.Attributes.Accessibility.Protected,
-						   ContextTypeIsSealed = false)]
+						  ContextTypeIsSealed = false)]
 	public abstract partial class PersonBase
 	{
 		public PersonBase()
