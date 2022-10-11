@@ -23,6 +23,9 @@ namespace TestApp.Data.AnotherNamespace
 
 		[TypeId]
 		private static String TypeId { get; } = "PersonType";
+
+		[SourceInstanceId]
+		protected String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
 	}
 
 	[SynchronizationTarget(BaseContextTypeName = nameof(PersonBase.PersonBaseSynchronizationContext),
@@ -31,7 +34,6 @@ namespace TestApp.Data.AnotherNamespace
 	{
 		public Person(String name)
 		{
-			SynchronizeTo(Guid.NewGuid().ToString());
 			Name = name;
 		}
 		public Person(Person person)
@@ -43,9 +45,6 @@ namespace TestApp.Data.AnotherNamespace
 		private String? _name;
 		[Synchronized]
 		private Byte _age;
-
-		[SourceInstanceId]
-		public String SourceInstanceId { get; set; } = Guid.NewGuid().ToString();
 
 		public override String ToString()
 		{

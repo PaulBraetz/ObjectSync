@@ -792,6 +792,10 @@ $@"if({InvokeMethodMethodParameterName} != null)
 
 			{InvokeMethodMethodParameterName}.Invoke();
 
+			{LocalTypeIdName} = {TypeIdAccess};
+			{LocalSourceInstanceIdName} = {SourceInstanceIdAccess};
+			{LocalInstanceIdName} = {InstanceIdAccess};
+
 			{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 
 			{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}
