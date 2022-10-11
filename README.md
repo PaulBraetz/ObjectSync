@@ -36,6 +36,7 @@ namespace MyNamespace
   }
 }
 ```
+**Note that is currently required to declare synchronized types inside a namespace.**
 
 Your type must provide a synchronization authority property for use by this context. Synchronization authorities are responsible for communication between contexts. As such, they could enable synchronization across the internet, among select clients, or inside a single Appdomain. A static synchronization authority has been provided for synchronizing properties inside a single app domain. Access it using `StaticSynchronizationAuthority.Instance`. 
 
