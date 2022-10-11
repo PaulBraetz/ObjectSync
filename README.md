@@ -92,6 +92,11 @@ namespace MyNamespace
   [SynchronizationTarget]
   internal partial class MyType
   {
+		public MyType()
+		{
+			SynchronizationContext.Synchronize();
+		}
+
     [SynchronizationAuthorityAttribute]
     private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
 
