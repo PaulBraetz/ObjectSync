@@ -10,15 +10,15 @@ ObjectSync is a C# analyzer that generates code for synchronizing properties.
 
 ## Versioning ##
 
-The most recent version of ObjectSync is 3.0.0.
+The most recent version of ObjectSync is 3.0.1.
 ObjectSync uses [Semantic Versioning 2.0.0](https://semver.org/).
 ## Installation ##
 
 Nuget Gallery: https://www.nuget.org/packages/RhoMicro.ObjectSync
 
-Package Manager: `Install-Package RhoMicro.ObjectSync -Version 3.0.0`
+Package Manager: `Install-Package RhoMicro.ObjectSync -Version 3.0.1`
 
-.Net CLI: `dotnet add package RhoMicro.ObjectSync --version 3.0.0`
+.Net CLI: `dotnet add package RhoMicro.ObjectSync --version 3.0.1`
 ## Quick Start ##
 
 ObjectSync works by generating a partial class for types annotated with the `SynchronizationTarget` attribute. It will generate a nested context type that manages synchronization state and logic for instances of your type. 
