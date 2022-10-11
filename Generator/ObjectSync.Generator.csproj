@@ -15,7 +15,7 @@
 		<Description>ObjectSync Source Generator</Description>
 		<Copyright>2022</Copyright>
 		<PackageTags>Rhomicro</PackageTags>
-		<Version>1.0.7</Version>
+		<Version>1.1.0</Version>
 		<PackageId>RhoMicro.ObjectSync</PackageId>
 		<AssemblyName>ObjectSync.Generator</AssemblyName>
 		<RootNamespace>ObjectSync.Generator</RootNamespace>
