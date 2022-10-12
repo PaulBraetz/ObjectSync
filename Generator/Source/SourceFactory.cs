@@ -221,16 +221,16 @@ $@"{propertyChangingCall}
 
 			return propertyName;
 		}
-		private Boolean TryGetNamespace(SyntaxNode node, out BaseNamespaceDeclarationSyntax namespaceDeclaration)
+		private Boolean TryGetNamespace(SyntaxNode node, out NamespaceDeclarationSyntax namespaceDeclaration)
 		{
-			while (node.Parent != null && !(node is BaseNamespaceDeclarationSyntax))
+			while (node.Parent != null && !(node is NamespaceDeclarationSyntax))
 			{
 				node = node.Parent;
 			}
 
 			namespaceDeclaration = node == null ?
 				null :
-				(node as BaseNamespaceDeclarationSyntax);
+				(node as NamespaceDeclarationSyntax);
 
 			return namespaceDeclaration != null;
 		}

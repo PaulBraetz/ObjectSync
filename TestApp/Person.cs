@@ -1,4 +1,4 @@
-﻿using ObjectSync.Synchronization;
+﻿using SomeExternalAssembly.ObjectSync.Synchronization;
 using ObjectSync.Attributes;
 
 namespace TestApp.Data.AnotherNamespace

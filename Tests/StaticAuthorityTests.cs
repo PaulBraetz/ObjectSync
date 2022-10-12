@@ -1,5 +1,5 @@
 using ObjectSync.Attributes;
-using ObjectSync.Synchronization;
+using Tests.ObjectSync.Synchronization;
 using System.Linq;
 
 namespace Tests
@@ -8,7 +8,7 @@ namespace Tests
 	{
 		public SampleAuthority() { }
 	}
-	[SynchronizationTarget]
+	[SynchronizationTarget(ContextPropertyAccessibility = Attributes.Accessibility.Private)]
 	internal sealed partial class SampleEntity<T1, T2, T3>
 	{
 		[SynchronizationAuthority]
