@@ -97,6 +97,8 @@ An error occured while generating this source file for {Declared.TypeIdentifier}
 			var members = new MemberDeclarationSyntax[]
 				{
 					Context.GetDeclaration(),
+					Members.PropertyChangedEventMethod,
+					Members.PropertyChangingEventMethod,
 					Members.ContextField,
 					Members.Context,
 					Members.TypeId,
@@ -133,17 +135,22 @@ An error occured while generating this source file for {Declared.TypeIdentifier}
 		#endregion
 
 		#region Misc
-		private StatementSyntax GetSetStatement(FieldDeclarationSyntax field, Boolean fromWithinContext)
+		private StatementSyntax[] GetSetStatements(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{
 			var propertyChangingCall = GetPropertyChangingCall(field, fromWithinContext);
 			var fieldName = GetFieldName(field);
 			var propertyChangedCall = GetPropertyChangedCall(field, fromWithinContext);
 
-			var statement = SyntaxFactory.ParseStatement(
-$@"{propertyChangingCall}
-{(fromWithinContext ? $"{Context.InstancePropertyAccess}." : String.Empty)}{fieldName} = value;{propertyChangedCall}");
+			var statements = new StatementSyntax[]
+			{
+				propertyChangingCall,
+				SyntaxFactory.ParseStatement($@"{(fromWithinContext ? $"{Context.InstancePropertyAccess.NormalizeWhitespace().ToFullString()}." : String.Empty)}{fieldName} = value;"),
+				propertyChangedCall
+			}
+			.Where(s => s != null)
+			.ToArray();
 
-			return statement;
+			return statements;
 		}
 		private StatementSyntax GetPropertyChangingCall(FieldDeclarationSyntax field, Boolean fromWithinContext)
 		{

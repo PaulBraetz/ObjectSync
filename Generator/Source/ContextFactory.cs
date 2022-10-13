@@ -679,8 +679,9 @@ namespace ObjectSync.Generator
 				method = method
 					.AddBodyStatements(RevertableSubscriptions)
 					.AddBodyStatements(
-						SyntaxFactory.ParseStatement($@"{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}"),
-						SyntaxFactory.ParseStatement($"{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}"));
+						Pulls
+						.Concat(PullAssignments)
+						.ToArray());
 
 				if (_parent.Declared.SynchronizationTargetAttribute.BaseContextTypeName != null)
 				{
@@ -741,9 +742,9 @@ $@"lock(this.{SyncRootPropertyName})
 
 		{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 
-		{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}
+		{String.Join("\r\n", Pulls.Select(s => s.NormalizeWhitespace().ToFullString()))}
 
-		{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}
+		{String.Join("\r\n", PullAssignments.Select(s => s.NormalizeWhitespace().ToFullString()))}
 	}}
 	this.{IsSynchronizedPropertyName} = true;
 }}"))
@@ -799,9 +800,9 @@ $@"if({InvokeMethodMethodParameterName} != null)
 
 			{GetRevertableSyncUnlockedMethodCall(SynchronizeUnlockedMethodName)}
 
-			{String.Join("\r\n", Pulls.Select(s => s.ToFullString()))}
+			{String.Join("\r\n", Pulls.Select(s => s.NormalizeWhitespace().ToFullString()))}
 
-			{String.Join("\r\n", PullAssignments.Select(s => s.ToFullString()))}
+			{String.Join("\r\n", PullAssignments.Select(s => s.NormalizeWhitespace().ToFullString()))}
 
 			this.{IsSynchronizedPropertyName} = true;
 		}}
@@ -984,7 +985,7 @@ $@"if({InvokeMethodMethodParameterName} != null)
 				var fieldType = _parent.GetFieldType(field);
 
 				var fieldName = _parent.GetFieldName(field);
-				var setStatement = _parent.GetSetStatement(field, fromWithinContext: true);
+				var setStatements = _parent.GetSetStatements(field, fromWithinContext: true);
 
 				var statement = SyntaxFactory.ParseStatement($"{_parent.Context.LocalAuthorityName}.Subscribe<" +
 															 $"{fieldType}>(" +
@@ -992,7 +993,7 @@ $@"if({InvokeMethodMethodParameterName} != null)
 															 $"{fieldName}\", " +
 															 $"{_parent.Context.LocalSourceInstanceIdName}, " +
 															 $"{_parent.Context.LocalInstanceIdName}, (value) => {{" +
-															 $"{setStatement}}});");
+															 $"{String.Join("\n", setStatements.Select(s => s.NormalizeWhitespace().ToFullString()))}}});");
 
 				return statement;
 			}

@@ -49,7 +49,7 @@ namespace TestApp.Data.AnotherNamespace
 			SynchronizeTo(person);
 		}
 
-		[Synchronized]
+		[Synchronized(Observable = true)]
 		private String? _name;
 		[Synchronized]
 		private Byte _age;

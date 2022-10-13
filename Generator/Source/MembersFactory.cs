@@ -16,7 +16,9 @@ namespace ObjectSync.Generator
 			private readonly SourceFactory _parent;
 
 			#region Properties
-			public String ContextFieldName = "_synchronizationContext";
+			public String PropertyNameLocalIdentifier => "propertyName";
+
+			public String ContextFieldName => "_synchronizationContext";
 			public String ContextPropertyName => "SynchronizationContext";
 
 			public String ObservablePropertyPrefix => "Observable";
@@ -26,7 +28,7 @@ namespace ObjectSync.Generator
 			public String PropertyChangedEventMethodName => "OnPropertyChanged";
 
 			public String TypeIdDefaultPropertyName => "TypeId";
-			public String TypeIdDefaultPropertySummary =
+			public String TypeIdDefaultPropertySummary =>
 @"/// <summary>
 /// The Id identifying this instance's type.
 /// </summary/>";
@@ -34,7 +36,7 @@ namespace ObjectSync.Generator
 			public Boolean TypeIdDefaultPropertyHasSetter => false;
 
 			public String SourceInstanceIdDefaultPropertyName => "SourceInstanceId";
-			public String SourceInstanceIdDefaultPropertySummary =
+			public String SourceInstanceIdDefaultPropertySummary =>
 	@"/// <summary>
 /// The Id identifying this instance's property data source.
 /// </summary/>";
@@ -42,7 +44,7 @@ namespace ObjectSync.Generator
 			public Boolean SourceInstanceIdDefaultPropertyHasSetter => true;
 
 			public String InstanceIdDefaultPropertyName => "InstanceId";
-			public String InstanceIdDefaultPropertySummary =
+			public String InstanceIdDefaultPropertySummary =>
 	@"/// <summary>
 /// The Id identifying this instance.
 /// </summary/>";
@@ -156,6 +158,92 @@ return this.{ContextField.Declaration.Variables.Single().Identifier};"))));
 					return _generatedProperties;
 				}
 			}
+
+			private Optional<MethodDeclarationSyntax> _propertyChangingEventMethod;
+			public MethodDeclarationSyntax PropertyChangingEventMethod
+			{
+				get
+				{
+					if (!_propertyChangingEventMethod.HasValue)
+					{
+						var generateMethod = _parent.Declared.SynchronizedFields
+							.Select(field =>
+								field.AttributeLists
+									.SelectMany(al => al.Attributes)
+									.Select(a => (success: _parent.SynchronizedAttributeFactory.TryBuild(a, _parent.Declared.SemanticModel, out var attributeInstance), attributeInstance))
+									.FirstOrDefault(t => t.success)
+									.attributeInstance?
+									.Observable ?? false)
+							.Any(o => o);
+
+						if (generateMethod)
+						{
+							var method = SyntaxFactory.MethodDeclaration(
+										SyntaxFactory.ParseTypeName("void"),
+										PropertyChangingEventMethodName)
+									.AddModifiers(
+										SyntaxFactory.Token(SyntaxKind.PartialKeyword))
+									.AddParameterListParameters(
+										SyntaxFactory.Parameter(
+												SyntaxFactory.Identifier(PropertyNameLocalIdentifier))
+											.WithType(TypeIdentifier.Create<String>().AsSyntax()))
+									.WithSemicolonToken(
+										SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+
+							_propertyChangingEventMethod = method;
+						}
+						else
+						{
+							_propertyChangingEventMethod = new Optional<MethodDeclarationSyntax>();
+						}
+					}
+
+					return _propertyChangingEventMethod.Value;
+				}
+			}
+
+			private Optional<MethodDeclarationSyntax> _propertyChangedEventMethod;
+			public MethodDeclarationSyntax PropertyChangedEventMethod
+			{
+				get
+				{
+					if (!_propertyChangedEventMethod.HasValue)
+					{
+						var generateMethod = _parent.Declared.SynchronizedFields
+							.Select(field =>
+								field.AttributeLists
+									.SelectMany(al => al.Attributes)
+									.Select(a => (success: _parent.SynchronizedAttributeFactory.TryBuild(a, _parent.Declared.SemanticModel, out var attributeInstance), attributeInstance))
+									.FirstOrDefault(t => t.success)
+									.attributeInstance?
+									.Observable ?? false)
+							.Any(o => o);
+
+						if (generateMethod)
+						{
+							var method = SyntaxFactory.MethodDeclaration(
+										SyntaxFactory.ParseTypeName("void"),
+										PropertyChangedEventMethodName)
+									.AddModifiers(
+										SyntaxFactory.Token(SyntaxKind.PartialKeyword))
+									.AddParameterListParameters(
+										SyntaxFactory.Parameter(
+												SyntaxFactory.Identifier(PropertyNameLocalIdentifier))
+											.WithType(TypeIdentifier.Create<String>().AsSyntax()))
+									.WithSemicolonToken(
+										SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+
+							_propertyChangedEventMethod = method;
+						}
+						else
+						{
+							_propertyChangedEventMethod = new Optional<MethodDeclarationSyntax>();
+						}
+					}
+
+					return _propertyChangedEventMethod.Value;
+				}
+			}
 			#endregion
 
 			public MembersFactory(SourceFactory parent)
@@ -241,7 +329,7 @@ return this.{ContextField.Declaration.Variables.Single().Identifier};"))));
 				var propertyName = _parent.GetGeneratedPropertyName(field);
 
 				var attribute = GetAttribute(field);
-				var setStatement = _parent.GetSetStatement(field, fromWithinContext: false);
+				var setStatements = _parent.GetSetStatements(field, fromWithinContext: false);
 
 				var isFast = attribute.Fast;
 
@@ -251,14 +339,16 @@ return this.{ContextField.Declaration.Variables.Single().Identifier};"))));
 				{
 					setter = setter
 					.AddBodyStatements(
-						setStatement,
-						SyntaxFactory.ParseStatement(
+						setStatements
+							.Append(
+								SyntaxFactory.ParseStatement(
 $@"if(this.{ContextPropertyName}.{_parent.Context.IsSynchronizedPropertyName})
 {{
 #nullable disable
 	this.{ContextPropertyName}.{_parent.Context.PushMethodName}<{fieldType}>(""{fieldName}"", value);
 #nullable restore
-}}"));
+}}"))
+							.ToArray());
 				}
 				else
 				{
@@ -267,11 +357,11 @@ $@"if(this.{ContextPropertyName}.{_parent.Context.IsSynchronizedPropertyName})
 						SyntaxFactory.ParseStatement(
 $@"this.{ContextPropertyName}.{_parent.Context.InvokeMethodName}((isSynchronized) =>
 {{
-	{setStatement}
+	{String.Join("\r\n", setStatements.Select(s => s.NormalizeWhitespace().ToFullString()))}
 	if(isSynchronized)
 	{{		
 #nullable disable
-		this.{ContextPropertyName}.{_parent.Context.PushMethodName}<{fieldType}>(""{fieldName}"", value);
+		this.{ContextPropertyName}.{_parent.Context.PushMethodName}<{fieldType}> (""{fieldName}"", value);
 #nullable restore
 	}}
 }});"));
