@@ -84,7 +84,7 @@ namespace ObjectSync.Synchronization
 		private class FieldStateContextBase
 		{
 			public static FieldStateContextBase Default { get; } = new FieldStateContextBase();
-
+			public virtual Boolean IsEmpty => false;
 			public virtual void Remove(SyncInfo syncInfo) { }
 		}
 		private sealed class FieldStateContext<TField> : FieldStateContextBase
@@ -97,7 +97,7 @@ namespace ObjectSync.Synchronization
 			private readonly Int32 _degreeOfParallelism = Environment.ProcessorCount > 1 ?
 														  Environment.ProcessorCount / 2 :
 														  1;
-
+			public override Boolean IsEmpty => !_callbacks.Any();
 			public TField GetValue()
 			{
 				return _value;
@@ -173,6 +173,13 @@ namespace ObjectSync.Synchronization
 
 			return context;
 		}
+		private static void EnsureFieldContextNotEmpty(SyncInfo syncInfo,FieldStateContextBase state)
+		{
+			if (state.IsEmpty)
+			{
+				_fieldStates.TryRemove(syncInfo.FieldStateId, out var _);
+			}
+		}
 
 		protected override void Push<TField>(SyncInfo syncInfo, TField value)
 		{
@@ -190,12 +197,14 @@ namespace ObjectSync.Synchronization
 		{
 			var context = GetFieldContext(syncInfo);
 			context.Remove(syncInfo);
+			EnsureFieldContextNotEmpty(syncInfo, context);
 		}
 
 		protected override TField Pull<TField>(SyncInfo syncInfo)
 		{
 			var context = GetFieldContext<TField>(syncInfo);
 			var value = context.GetValue();
+			EnsureFieldContextNotEmpty(syncInfo, context);
 
 			return value;
 		}
