@@ -68,7 +68,7 @@ namespace RhoMicro.ObjectSync.Attributes
         public String RootNamespace
         {
             get; set;
-        }
+        } = "RhoMicro";
     }
 
     /// <summary>
