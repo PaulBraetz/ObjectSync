@@ -51,7 +51,7 @@ namespace RhoMicro.ObjectSync.Attributes
 
     }
 
-    public enum ExportConfigType
+    internal enum ExportConfigType
     {
         Generate,
         Export,
@@ -269,7 +269,7 @@ namespace RhoMicro.ObjectSync.Attributes
         private const String EXPORTCONFIGTYPE_SOURCE =
 @"namespace RhoMicro.ObjectSync.Attributes
 {
-	public enum ExportConfigType
+	internal enum ExportConfigType
 	{
 		Generate,
 		Export,
