@@ -15,6 +15,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Generator\ObjectSync.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
+
 	<PropertyGroup>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 	</PropertyGroup>

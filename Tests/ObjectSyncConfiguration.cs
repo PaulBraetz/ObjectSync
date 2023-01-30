@@ -1,3 +1,5 @@
-﻿[assembly: ObjectSync.Attributes.TypeExportConfiguration(
-		RootNamespace = "Tests",
-		Type = ObjectSync.Attributes.TypeExportConfigurationAttribute.ExportConfig.Generate)]
+﻿using RhoMicro.ObjectSync.Attributes;
+
+[assembly: TypeExportConfiguration(
+        RootNamespace = "Tests",
+        Type = ExportConfigType.Generate)]
