@@ -95,7 +95,6 @@ namespace RhoMicro.ObjectSync.Generator
             }
 
             @namespace = @namespace
-                .Append("RhoMicro")
                 .Append("ObjectSync")
                 .Append("Synchronization");
 
