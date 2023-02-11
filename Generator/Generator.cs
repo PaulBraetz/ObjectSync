@@ -51,11 +51,6 @@ namespace RhoMicro.ObjectSync.Generator
                     .Select(t => t.Source))
                 .Where(s => s != default);
 
-#if DEBUG
-            Console.WriteLine(String.Join("\n\n", sources));
-            Console.ReadLine();
-#endif
-
             context.AddSources(sources);
         }
 
