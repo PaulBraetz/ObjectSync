@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     [Generator]
     internal class Generator : ISourceGenerator
@@ -99,10 +99,16 @@ namespace RhoMicro.ObjectSync.Generator
 
                         node = node.Parent;
                     } while(node != null);
-                } else if(context.Node is AttributeSyntax attribute &&
-                      GeneratedAttributes.TypeExportConfiguration.Factory.TryBuild(attribute, context.SemanticModel, out var config))
+
+                    return;
+                }
+
+                if(context.Node is AttributeSyntax attribute)
                 {
-                    Config = config;
+                    if(GeneratedAttributes.TypeExportConfiguration.Factory.TryBuild(attribute, context.SemanticModel, out var config))
+                    {
+                        Config = config;
+                    }
                 }
             }
         }

@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal sealed partial class SourceFactory
     {

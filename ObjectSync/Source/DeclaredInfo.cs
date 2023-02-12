@@ -8,7 +8,7 @@ using RhoMicro.ObjectSync.Attributes;
 using System;
 using System.Linq;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal sealed partial class SourceFactory
     {

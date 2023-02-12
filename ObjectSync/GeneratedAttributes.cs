@@ -4,6 +4,7 @@ using RhoMicro.ObjectSync.Attributes;
 
 using System;
 
+//Do not change this namespace as attributes factories will fail
 namespace RhoMicro.ObjectSync.Attributes
 {
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
@@ -187,7 +188,7 @@ namespace RhoMicro.ObjectSync.Attributes
     }
 }
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal static class GeneratedAttributes
     {

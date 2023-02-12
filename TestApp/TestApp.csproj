@@ -5,15 +5,24 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<WarningsAsErrors>$(WarningsAsErrors);NU1605;1591;1573;1712</WarningsAsErrors>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<WarningsAsErrors>$(WarningsAsErrors);NU1605;1591;1573;1712</WarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="RhoMicro.Fort" Version="1.1.1" />
-	  <PackageReference Include="RhoMicro.Scli" Version="1.2.0" />
+		<PackageReference Include="RhoMicro.Fort" Version="1.1.1" />
+		<PackageReference Include="RhoMicro.Scli" Version="1.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Generator\ObjectSync.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\ObjectSync\ObjectSync.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<PropertyGroup>

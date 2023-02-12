@@ -4,12 +4,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using RhoMicro.CodeAnalysis;
 using RhoMicro.ObjectSync.Attributes;
-using RhoMicro.ObjectSync.Generator;
 
 using System;
 using System.Linq;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal sealed partial class SourceFactory
     {

@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     public sealed class Initializable<T> : IEquatable<Initializable<T>>
     {
@@ -235,7 +235,7 @@ namespace RhoMicro.ObjectSync.Generator
     }
 }
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal static class GeneratedSynchronizationClasses
     {

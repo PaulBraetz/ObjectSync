@@ -8,7 +8,7 @@ using System;
 
 using Accessibility = RhoMicro.ObjectSync.Attributes.Accessibility;
 
-namespace RhoMicro.ObjectSync.Generator
+namespace RhoMicro.ObjectSync
 {
     internal static class Extensions
     {

@@ -1,5 +1,6 @@
-using Tests.ObjectSync.Synchronization;
 using RhoMicro.ObjectSync.Attributes;
+
+using Tests.ObjectSync.Synchronization;
 
 namespace Tests
 {
