@@ -42,7 +42,7 @@ namespace RhoMicro.ObjectSync
                     new Func<TypeExportConfigurationAttribute, GeneratedType>[]
                     {
                         GeneratedSynchronizationClasses.GetISynchronizationAuthority,
-                        GeneratedSynchronizationClasses.GetStaticSynchronizationAuthority,
+                        GeneratedSynchronizationClasses.GetMemorySynchronizationAuthority,
                         GeneratedSynchronizationClasses.GetSynchronizationAuthorityBase,
                         GeneratedSynchronizationClasses.GetSyncInfo,
                         GeneratedSynchronizationClasses.GetInitializable

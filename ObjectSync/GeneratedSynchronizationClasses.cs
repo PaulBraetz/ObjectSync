@@ -60,7 +60,7 @@ namespace RhoMicro.ObjectSync
         void Subscribe<TProperty>(String typeId, String fieldName, String sourceInstanceId, String instanceId, Action<TProperty> callback);
         void Unsubscribe(String typeId, String fieldName, String sourceInstanceId, String instanceId);
     }
-    public class StaticSynchronizationAuthority : SynchronizationAuthorityBase
+    public class MemorySynchronizationAuthority : SynchronizationAuthorityBase
     {
         private class FieldStateContextBase
         {
@@ -122,22 +122,25 @@ namespace RhoMicro.ObjectSync
             public override void Remove(SyncInfo syncInfo) => _ = _callbacks.TryRemove(syncInfo.InstanceId, out _);
         }
 
-        protected StaticSynchronizationAuthority()
+        protected MemorySynchronizationAuthority()
         {
         }
 
-        public static readonly StaticSynchronizationAuthority Instance = new StaticSynchronizationAuthority();
+        /// <summary>
+        /// Singleton instance of <see cref="MemorySynchronizationAuthority"/>.
+        /// </summary>
+        public static readonly MemorySynchronizationAuthority Instance = new MemorySynchronizationAuthority();
 
         //PropertySynchronizationGroupId->PropertyState
-        private static readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
+        private readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
 
-        private static FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
+        private FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
         {
             var context = (FieldStateContext<TField>)_fieldStates.GetOrAdd(syncInfo.FieldStateId, new FieldStateContext<TField>());
 
             return context;
         }
-        private static FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
+        private FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
         {
             var context = _fieldStates.TryGetValue(syncInfo.FieldStateId, out var state) ?
                 (FieldStateContextBase)state :
@@ -145,7 +148,7 @@ namespace RhoMicro.ObjectSync
 
             return context;
         }
-        private static void EnsureFieldContextNotEmpty(SyncInfo syncInfo, FieldStateContextBase state)
+        private void EnsureFieldContextNotEmpty(SyncInfo syncInfo, FieldStateContextBase state)
         {
             if(state.IsEmpty)
             {
@@ -343,8 +346,8 @@ namespace " + NAMESPACE_PLACEHOLDER + @"
             => GetGeneratedType<ISynchronizationAuthority>(config, ISYNCHRONIZATIONAUTHORITY_SOURCE_TEMPLATE);
         #endregion
 
-        #region StaticSynchronizationAuthority
-        private const String STATICSYNCHRONIZATIONAUTHORITY_SOURCE_TEMPLATE =
+        #region MemorySynchronizationAuthority
+        private const String MEMORY_SYNCHRONIZATION_AUTHORITY_SOURCE_TEMPLATE =
 @"using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -354,130 +357,133 @@ using System.Threading;
 
 namespace " + NAMESPACE_PLACEHOLDER + @"
 {
-	" + ACCESSIBILITY_PLACEHOLDER + @" class StaticSynchronizationAuthority : SynchronizationAuthorityBase
-	{
-		private class FieldStateContextBase
-		{
-			public static FieldStateContextBase Default { get; } = new FieldStateContextBase();
+	" + ACCESSIBILITY_PLACEHOLDER + @" class MemorySynchronizationAuthority : SynchronizationAuthorityBase
+    {
+        private class FieldStateContextBase
+        {
+            public static FieldStateContextBase Default { get; } = new FieldStateContextBase();
+            public virtual Boolean IsEmpty => false;
+            public virtual void Remove(SyncInfo syncInfo)
+            {
+            }
+        }
+        private sealed class FieldStateContext<TField> : FieldStateContextBase
+        {
+            private TField _value;
+            private readonly SemaphoreSlim _valueGate = new SemaphoreSlim(1, 1);
+            private readonly ConcurrentDictionary<String, Action<TField>> _callbacks = new ConcurrentDictionary<String, Action<TField>>();
+            private readonly Int32 _degreeOfParallelism = Environment.ProcessorCount > 1 ?
+                                                          Environment.ProcessorCount / 2 :
+                                                          1;
+            public override Boolean IsEmpty => !_callbacks.Any();
+            public TField GetValue() => _value;
+            public void SetValue(SyncInfo syncInfo, TField value)
+            {
+                _valueGate.Wait();
+                try
+                {
+                    var exceptions = new List<Exception>();
 
-			public virtual void Remove(SyncInfo syncInfo) { }
-		}
-		private sealed class FieldStateContext<TField> : FieldStateContextBase
-		{
-#pragma warning disable CS8618
-			private TField _value;
-#pragma warning restore CS8618
-			private readonly SemaphoreSlim _valueGate = new SemaphoreSlim(1, 1);
-			private readonly ConcurrentDictionary<String, Action<TField>> _callbacks = new ConcurrentDictionary<string, Action<TField>>();
-			private readonly Int32 _degreeOfParallelism = Environment.ProcessorCount > 1 ?
-														  Environment.ProcessorCount / 2 :
-														  1;
+                    var callbackGroups = _callbacks
+                        .Where(c => c.Key != syncInfo.InstanceId)
+                        .Select((e, i) => (Group: i % _degreeOfParallelism, Callback: e.Value))
+                        .GroupBy(e => e.Group, e => e.Callback);
 
-			public TField GetValue()
-			{
-				return _value;
-			}
-			public void SetValue(SyncInfo syncInfo, TField value)
-			{
-				_valueGate.Wait();
-				try
-				{
-					var exceptions = new List<Exception>();
+                    _ = Parallel.ForEach(callbackGroups, invokeCallbacks);
 
-					var callbackGroups = _callbacks
-						.Where(c => c.Key != syncInfo.InstanceId)
-						.Select((e, i) => (Group: i % _degreeOfParallelism, Callback: e.Value))
-						.GroupBy(e => e.Group, e => e.Callback);
+                    if(exceptions.Any())
+                    {
+                        throw new AggregateException(exceptions);
+                    }
 
-					_ = Parallel.ForEach(callbackGroups, invokeCallbacks);
+                    void invokeCallbacks(IEnumerable<Action<TField>> callbacks)
+                    {
+                        foreach(var callback in callbacks)
+                        {
+                            try
+                            {
+                                callback.Invoke(value);
+                            } catch(Exception ex)
+                            {
+                                exceptions.Add(ex);
+                            }
+                        }
+                    }
+                } finally
+                {
+                    _value = value;
+                    _ = _valueGate.Release();
+                }
+            }
+            public void Add(SyncInfo syncInfo, Action<TField> callback) => _ = _callbacks.AddOrUpdate(syncInfo.InstanceId, callback, (key, value) => callback);
+            public override void Remove(SyncInfo syncInfo) => _ = _callbacks.TryRemove(syncInfo.InstanceId, out _);
+        }
 
-					if (exceptions.Any())
-					{
-						throw new AggregateException(exceptions);
-					}
+        protected MemorySynchronizationAuthority()
+        {
+        }
 
-					void invokeCallbacks(IEnumerable<Action<TField>> callbacks)
-					{
-						foreach (var callback in callbacks)
-						{
-							try
-							{
-								callback.Invoke(value);
-							}
-							catch (Exception ex)
-							{
-								exceptions.Add(ex);
-							}
-						}
-					}
-				}
-				finally
-				{
-					_value = value;
-					_ = _valueGate.Release();
-				}
-			}
-			public void Add(SyncInfo syncInfo, Action<TField> callback)
-			{
-				_ = _callbacks.AddOrUpdate(syncInfo.InstanceId, callback, (key, value) => callback);
-			}
-			public override void Remove(SyncInfo syncInfo)
-			{
-				_ = _callbacks.TryRemove(syncInfo.InstanceId, out _);
-			}
-		}
+        /// <summary>
+        /// Singleton instance of <see cref=""MemorySynchronizationAuthority""/>.
+        /// </summary>
+        public static readonly MemorySynchronizationAuthority Instance = new MemorySynchronizationAuthority();
 
-		protected StaticSynchronizationAuthority() { }
+        //PropertySynchronizationGroupId->PropertyState
+        private readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
 
-		public static readonly StaticSynchronizationAuthority Instance = new StaticSynchronizationAuthority();
+        private FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
+        {
+            var context = (FieldStateContext<TField>)_fieldStates.GetOrAdd(syncInfo.FieldStateId, new FieldStateContext<TField>());
 
-		//PropertySynchronizationGroupId->PropertyState
-		private static readonly ConcurrentDictionary<String, Object> _fieldStates = new ConcurrentDictionary<String, Object>();
+            return context;
+        }
+        private FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
+        {
+            var context = _fieldStates.TryGetValue(syncInfo.FieldStateId, out var state) ?
+                (FieldStateContextBase)state :
+                FieldStateContextBase.Default;
 
-		private static FieldStateContext<TField> GetFieldContext<TField>(SyncInfo syncInfo)
-		{
-			var context = (FieldStateContext<TField>)_fieldStates.GetOrAdd(syncInfo.FieldStateId, new FieldStateContext<TField>());
+            return context;
+        }
+        private void EnsureFieldContextNotEmpty(SyncInfo syncInfo, FieldStateContextBase state)
+        {
+            if(state.IsEmpty)
+            {
+                _ = _fieldStates.TryRemove(syncInfo.FieldStateId, out _);
+            }
+        }
 
-			return context;
-		}
-		private static FieldStateContextBase GetFieldContext(SyncInfo syncInfo)
-		{
-			var context = _fieldStates.TryGetValue(syncInfo.FieldStateId, out var state) ?
-				(FieldStateContextBase)state :
-				FieldStateContextBase.Default;
+        protected override void Push<TField>(SyncInfo syncInfo, TField value)
+        {
+            var context = GetFieldContext<TField>(syncInfo);
+            context.SetValue(syncInfo, value);
+        }
 
-			return context;
-		}
+        protected override void Subscribe<TField>(SyncInfo syncInfo, Action<TField> callback)
+        {
+            var context = GetFieldContext<TField>(syncInfo);
+            context.Add(syncInfo, callback);
+        }
 
-		protected override void Push<TField>(SyncInfo syncInfo, TField value)
-		{
-			var context = GetFieldContext<TField>(syncInfo);
-			context.SetValue(syncInfo, value);
-		}
+        protected override void Unsubscribe(SyncInfo syncInfo)
+        {
+            var context = GetFieldContext(syncInfo);
+            context.Remove(syncInfo);
+            EnsureFieldContextNotEmpty(syncInfo, context);
+        }
 
-		protected override void Subscribe<TField>(SyncInfo syncInfo, Action<TField> callback)
-		{
-			var context = GetFieldContext<TField>(syncInfo);
-			context.Add(syncInfo, callback);
-		}
+        protected override TField Pull<TField>(SyncInfo syncInfo)
+        {
+            var context = GetFieldContext<TField>(syncInfo);
+            var value = context.GetValue();
+            EnsureFieldContextNotEmpty(syncInfo, context);
 
-		protected override void Unsubscribe(SyncInfo syncInfo)
-		{
-			var context = GetFieldContext(syncInfo);
-			context.Remove(syncInfo);
-		}
-
-		protected override TField Pull<TField>(SyncInfo syncInfo)
-		{
-			var context = GetFieldContext<TField>(syncInfo);
-			var value = context.GetValue();
-
-			return value;
-		}
-	}
+            return value;
+        }
+    }
 }";
-        public static GeneratedType GetStaticSynchronizationAuthority(TypeExportConfigurationAttribute config)
-            => GetGeneratedType<StaticSynchronizationAuthority>(config, STATICSYNCHRONIZATIONAUTHORITY_SOURCE_TEMPLATE);
+        public static GeneratedType GetMemorySynchronizationAuthority(TypeExportConfigurationAttribute config)
+            => GetGeneratedType<MemorySynchronizationAuthority>(config, MEMORY_SYNCHRONIZATION_AUTHORITY_SOURCE_TEMPLATE);
         #endregion
 
         #region SynchronizationAuthorityBase

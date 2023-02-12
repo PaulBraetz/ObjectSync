@@ -4,7 +4,7 @@ using Tests.ObjectSync.Synchronization;
 
 namespace Tests
 {
-    internal sealed class SampleAuthority : StaticSynchronizationAuthority
+    internal sealed class SampleAuthority : MemorySynchronizationAuthority
     {
         public SampleAuthority()
         {
