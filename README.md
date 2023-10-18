@@ -53,7 +53,7 @@ namespace MyNamespace
   internal partial class MyType
   {
     [SynchronizationAuthorityAttribute]
-    private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+    private ISynchronizationAuthority Authority { get; } = MemorySynchronizationAuthority.Instance;
   }
 }
 ```
@@ -70,7 +70,7 @@ namespace MyNamespace
   internal partial class MyType
   {
     [SynchronizationAuthorityAttribute]
-    private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+    private ISynchronizationAuthority Authority { get; } = MemorySynchronizationAuthority.Instance;
 
     [Synchronized]
     private String _synchronizedValue;
@@ -101,7 +101,7 @@ namespace MyNamespace
 		}
 
     [SynchronizationAuthorityAttribute]
-    private ISynchronizationAuthority Authority { get; } = StaticSynchronizationAuthority.Instance;
+    private ISynchronizationAuthority Authority { get; } = MemorySynchronizationAuthority.Instance;
 
     [Synchronized]
     private String _synchronizedValue;
